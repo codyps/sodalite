@@ -1,7 +1,12 @@
-/*
+
+#include "tweetnacl.h"
 #define FOR(i,n) for (i = 0;i < n;++i)
 #define sv static void
 
+typedef unsigned char u8;
+typedef unsigned long u32;
+typedef unsigned long long u64;
+typedef long long i64;
 typedef i64 gf[16];
 extern void randombytes(u8 *,u64);
 
@@ -17,316 +22,238 @@ static const gf
   X = {0xd51a, 0x8f25, 0x2d60, 0xc956, 0xa7b2, 0x9525, 0xc760, 0x692c, 0xdc5c, 0xfdd6, 0xe231, 0xc0a4, 0x53fe, 0xcd6e, 0x36d3, 0x2169},
   Y = {0x6658, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666},
   I = {0xa0b0, 0x4a0e, 0x1b27, 0xc4ee, 0xe478, 0xad2f, 0x1806, 0x2f43, 0xd7a7, 0x3dfb, 0x0099, 0x2b4d, 0xdf0b, 0x4fc1, 0x2480, 0x2b83};
-*/
 
-fn L32(x: u32, c: usize /* int */) -> u32
+static u32 L32(u32 x,int c) { return (x << c) | ((x&0xffffffff) >> (32 - c)); }
+
+static u32 ld32(const u8 *x)
 {
-    (x << c) | ((x & 0xffffffff) >> (32 - c))
+  u32 u = x[3];
+  u = (u<<8)|x[2];
+  u = (u<<8)|x[1];
+  return (u<<8)|x[0];
 }
 
-fn ld32(x: &[u8;4]) -> u32
+static u64 dl64(const u8 *x)
 {
-    let u : u32 = x[3];
-    u = (u << 8) | x[2];
-    u = (u << 8) | x[1];
-    (u << 8) | x[0]
+  u64 i,u=0;
+  FOR(i,8) u=(u<<8)|x[i];
+  return u;
 }
 
-fn dl64(x: &[u8;8]) -> u64
+sv st32(u8 *x,u32 u)
 {
-    let u = 0u64;
-    for v in x {
-        u = (u << 8 | v);
-    }
-    u
+  int i;
+  FOR(i,4) { x[i] = u; u >>= 8; }
 }
 
-fn st32(x: &mut [u8;4], u: u32)
+sv ts64(u8 *x,u64 u)
 {
-    for v in x.iter_mut() {
-        v = u;
-        u = u >> 8;
-    }
+  int i;
+  for (i = 7;i >= 0;--i) { x[i] = u; u >>= 8; }
 }
 
-fn ts64(x: &mut [u8],u: u64)
+static int vn(const u8 *x,const u8 *y,int n)
 {
-    for v in x.iter_mut().rev() {
-        v = u;
-        u >>= 8;
-    }
+  u32 i,d = 0;
+  FOR(i,n) d |= x[i]^y[i];
+  return (1 & ((d - 1) >> 8)) - 1;
 }
 
-fn vn(x: &const [u8], y: &const [u8]) -> isize /* int */
+int crypto_verify_16(const u8 *x,const u8 *y)
 {
-    assert_eq!(x.len(), y.len());
-    let d = 0u32;
-    for (v, w) in (x,y).zip() {
-        d |= v ^ x;
-    }
-
-    (1 & ((d - 1) >> 8)) - 1
+  return vn(x,y,16);
 }
 
-pub fn crypto_verify_16(x: &[u8;16], y: &[u8;16]) -> isize /* int */
+int crypto_verify_32(const u8 *x,const u8 *y)
 {
-    vn(x[..], y[..])
+  return vn(x,y,32);
 }
 
-pub fn crypto_verify_32(x: &[u8;32], y: &[u8;32]) -> isize /* int */
+sv core(u8 *out,const u8 *in,const u8 *k,const u8 *c,int h)
 {
-    vn(x[..], y[..])
-}
+  u32 w[16],x[16],y[16],t[4];
+  int i,j,m;
 
-fn core(out : &mut[u8], inx: &[u8], k: &[u8], c: &[u8], h: isize /* int */)
-{
-    let w = [0u32; 16],
-        x = [0u32; 16],
-        y = [0u32; 16],
-        t = [0u32; 4];
-
-    for i in 0..4 {
-        x[5*i] = ld32(c+4*i);
-        x[1+i] = ld32(k+4*i);
-        x[6+i] = ld32(in+4*i);
-        x[11+i] = ld32(k+16+4*i);
-    }
-
-    for i in 0..16 {
-        y[i] = x[i];
-    }
-
-    for i in 0..20 {
-        for j in 0..4 {
-            for m in 0..4 {
-                t[m] = x[(5*j+4*m)%16];
-            }
-            t[1] ^= L32(t[0]+t[3], 7);
-            t[2] ^= L32(t[1]+t[0], 9);
-            t[3] ^= L32(t[2]+t[1],13);
-            t[0] ^= L32(t[3]+t[2],18);
-            for m in 0..4 {
-                w[4*j+(j+m)%4] = t[m];
-            }
-        }
-        for m in 0..16 {
-            x[m] = w[m];
-        }
-    }
-
-    if h {
-        for i in 0..16 {
-            x[i] += y[i];
-        }
-        for i in 0..4 {
-            x[5*i] -= ld32(c+4*i);
-            x[6+i] -= ld32(in+4*i);
-        }
-        for i in 0..4 {
-            st32(out+4*i,x[5*i]);
-            st32(out+16+4*i,x[6+i]);
-        }
-    } else {
-        for i in 0..16 {
-            st32(out + 4 * i,x[i] + y[i]);
-        }
-    }
-}
-
-pub fn crypto_core_salsa20(out: &mut [u8], inx: &[u8], k: &[u8], c: &[u8]) -> isize /* int */
-{
-  core(out,in,k,c,0);
-  0
-}
-
-pub fn crypto_core_hsalsa20(out: &mut [u8], inx: &[u8], k: &[u8], c: &[u8]) -> isize /* int */
-{
-  core(out,in,k,c,1);
-  0
-}
-
-static sigma = b"expand 32-byte k";
-
-pub fn crypto_stream_salsa20_xor(c: &mut [u8], m: &[u8], b: u64, n: &[u8], k: &[u8]) -> isize /* int */
-{
-    let z = [0u8;16],
-        x = [0u8;64];
-
-    if !b {
-        return 0;
-    }
-
-    for i in 0..16 {
-        z[i] = 0;
-    }
-
-    for i in 0..8 {
-        z[i] = n[i];
-    }
-
-    while b >= 64 {
-        crypto_core_salsa20(x,z,k,sigma);
-        for i in 0..64 {
-            c[i] = (m?m[i]:0) ^ x[i]
-        }
-        u = 1;
-        for i in 8..16 {
-            u += z[i];
-            z[i] = u;
-            u >>= 8;
-        }
-        b -= 64;
-        c += 64;
-        if m {
-            m += 64;
-        }
-    }
-    
-    if b {
-        crypto_core_salsa20(x,z,k,sigma);
-        for i in 0..b {
-            c[i] = (m?m[i]:0) ^ x[i];
-        }
-    }
-
-    return 0;
-}
-
-pub fn crypto_stream_salsa20(u8 *c,u64 d,const u8 *n,const u8 *k) -> isize /* int */
-{
-    crypto_stream_salsa20_xor(c,0,d,n,k)
-}
-
-pub fn crypto_stream(u8 *c,u64 d,const u8 *n,const u8 *k)
-{
-    let s = [0u8; 32];
-    crypto_core_hsalsa20(s,n,k,sigma);
-    crypto_stream_salsa20(c,d,n+16,s)
-}
-
-pub fn crypto_stream_xor(u8 *c,const u8 *m,u64 d,const u8 *n,const u8 *k) -> isize /* int */
-{
-    let s = [0u8; 32];
-    crypto_core_hsalsa20(s,n,k,sigma);
-    crypto_stream_salsa20_xor(c,m,d,n+16,s)
-}
-
-fn add1305(h: &mut [u32; 16], c: &[u32; 16])
-{
-    let u = 0u32;
-    for j in 0..17 {
-        u += h[j] + c[j];
-        h[j] = u & 255;
-        u >>= 8;
-    }
-}
-
-const minusp = {
-    5u32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 252
-} ;
-
-pub fn crypto_onetimeauth(out: &mut [u8] m: &[u8], n: u64, k: &[u8]) -> isize /* int */
-{
-    let x = [0u32;17],
-        r = [0u32;17],
-        h = [0u32;17],
-        c = [0u32;17],
-        g = [0u32;17];
-
-    for j in 0..16 {
-        r[j]=k[j];
-    } 
-
-    r[3]&=15;
-    r[4]&=252;
-    r[7]&=15;
-    r[8]&=252;
-    r[11]&=15;
-    r[12]&=252;
-    r[15]&=15;
-
-    while n > 0 {
-        for j in  0..17 {
-            c[j] = 0;
-        }
-
-        for j in 0..min(n, 16) {
-            c[j] = m[j];
-        }
-        c[j] = 1;
-        m += j;
-        n -= j;
-        add1305(h,c);
-        for i in 0..17 {
-            x[i] = 0;
-            for j in 0..17 {
-                x[i] += h[j] * ((j <= i) ? r[i - j] : 320 * r[i + 17 - j]);
-            }
-        }
-
-        for i in 0..17 {
-            h[i] = x[i];
-        }
-        let u = 0u32;
-        for j in 0..16 {
-            u += h[j];
-            h[j] = u & 255;
-            u >>= 8;
-        }
-        u += h[16];
-        h[16] = u & 3;
-        u = 5 * (u >> 2);
-        for j in 0..16 {
-            u += h[j];
-            h[j] = u & 255;
-            u >>= 8;
-        }
-        u += h[16];
-        h[16] = u;
-    }
-
-    for j in 0..17 {
-      g[j] = h[j];
-    }
-    add1305(h,minusp);
-    let s : u32 = -(h[16] >> 7);
-    for j in 0..17 {
-        h[j] ^= s & (g[j] ^ h[j]);
-    }
-
-    for j in 0..16 {
-       c[j] = k[j + 16];
-    }
-    c[16] = 0;
-    add1305(h,c);
-    for j in 0..16 {
-        out[j] = h[j];
-    }
-    return 0;
-}
-
-pub fn crypto_onetimeauth_verify(h: &[u8], m: &[u8], n: u64, k: &[u8]) -> isize /* int */
-{
-    let x = [0u8; 16];
-    crypto_onetimeauth(&mut x,m,n,k);
-    return crypto_verify_16(h,&x);
-}
-
-pub fn crypto_secretbox(c: &mut [u8], m &[u8], d: u64, n: &[u8], k: &[u8]) -> isize /* int */
-{
-  if d < 32 {
-      return -1;
+  FOR(i,4) {
+    x[5*i] = ld32(c+4*i);
+    x[1+i] = ld32(k+4*i);
+    x[6+i] = ld32(in+4*i);
+    x[11+i] = ld32(k+16+4*i);
   }
 
-  crypto_stream_xor(c,m,d,n,k);
-  crypto_onetimeauth(c + 16,c + 32,d - 32,c);
-  for i in 0..16 {
-    c[i] = 0;
+  FOR(i,16) y[i] = x[i];
+
+  FOR(i,20) {
+    FOR(j,4) {
+      FOR(m,4) t[m] = x[(5*j+4*m)%16];
+      t[1] ^= L32(t[0]+t[3], 7);
+      t[2] ^= L32(t[1]+t[0], 9);
+      t[3] ^= L32(t[2]+t[1],13);
+      t[0] ^= L32(t[3]+t[2],18);
+      FOR(m,4) w[4*j+(j+m)%4] = t[m];
+    }
+    FOR(m,16) x[m] = w[m];
+  }
+
+  if (h) {
+    FOR(i,16) x[i] += y[i];
+    FOR(i,4) {
+      x[5*i] -= ld32(c+4*i);
+      x[6+i] -= ld32(in+4*i);
+    }
+    FOR(i,4) {
+      st32(out+4*i,x[5*i]);
+      st32(out+16+4*i,x[6+i]);
+    }
+  } else
+    FOR(i,16) st32(out + 4 * i,x[i] + y[i]);
+}
+
+int crypto_core_salsa20(u8 *out,const u8 *in,const u8 *k,const u8 *c)
+{
+  core(out,in,k,c,0);
+  return 0;
+}
+
+int crypto_core_hsalsa20(u8 *out,const u8 *in,const u8 *k,const u8 *c)
+{
+  core(out,in,k,c,1);
+  return 0;
+}
+
+static const u8 sigma[16] = "expand 32-byte k";
+
+int crypto_stream_salsa20_xor(u8 *c,const u8 *m,u64 b,const u8 *n,const u8 *k)
+{
+  u8 z[16],x[64];
+  u32 u,i;
+  if (!b) return 0;
+  FOR(i,16) z[i] = 0;
+  FOR(i,8) z[i] = n[i];
+  while (b >= 64) {
+    crypto_core_salsa20(x,z,k,sigma);
+    FOR(i,64) c[i] = (m?m[i]:0) ^ x[i];
+    u = 1;
+    for (i = 8;i < 16;++i) {
+      u += (u32) z[i];
+      z[i] = u;
+      u >>= 8;
+    }
+    b -= 64;
+    c += 64;
+    if (m) m += 64;
+  }
+  if (b) {
+    crypto_core_salsa20(x,z,k,sigma);
+    FOR(i,b) c[i] = (m?m[i]:0) ^ x[i];
   }
   return 0;
 }
 
-pub fn crypto_secretbox_open(m: &mut [u8], c: &[u8], u64 d, n: &[u8], k: &[u8]) -> isize /* int */
+int crypto_stream_salsa20(u8 *c,u64 d,const u8 *n,const u8 *k)
+{
+  return crypto_stream_salsa20_xor(c,0,d,n,k);
+}
+
+int crypto_stream(u8 *c,u64 d,const u8 *n,const u8 *k)
+{
+  u8 s[32];
+  crypto_core_hsalsa20(s,n,k,sigma);
+  return crypto_stream_salsa20(c,d,n+16,s);
+}
+
+int crypto_stream_xor(u8 *c,const u8 *m,u64 d,const u8 *n,const u8 *k)
+{
+  u8 s[32];
+  crypto_core_hsalsa20(s,n,k,sigma);
+  return crypto_stream_salsa20_xor(c,m,d,n+16,s);
+}
+
+sv add1305(u32 *h,const u32 *c)
+{
+  u32 j,u = 0;
+  FOR(j,17) {
+    u += h[j] + c[j];
+    h[j] = u & 255;
+    u >>= 8;
+  }
+}
+
+static const u32 minusp[17] = {
+  5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 252
+} ;
+
+int crypto_onetimeauth(u8 *out,const u8 *m,u64 n,const u8 *k)
+{
+  u32 s,i,j,u,x[17],r[17],h[17],c[17],g[17];
+
+  FOR(j,17) r[j]=h[j]=0;
+  FOR(j,16) r[j]=k[j];
+  r[3]&=15;
+  r[4]&=252;
+  r[7]&=15;
+  r[8]&=252;
+  r[11]&=15;
+  r[12]&=252;
+  r[15]&=15;
+
+  while (n > 0) {
+    FOR(j,17) c[j] = 0;
+    for (j = 0;(j < 16) && (j < n);++j) c[j] = m[j];
+    c[j] = 1;
+    m += j; n -= j;
+    add1305(h,c);
+    FOR(i,17) {
+      x[i] = 0;
+      FOR(j,17) x[i] += h[j] * ((j <= i) ? r[i - j] : 320 * r[i + 17 - j]);
+    }
+    FOR(i,17) h[i] = x[i];
+    u = 0;
+    FOR(j,16) {
+      u += h[j];
+      h[j] = u & 255;
+      u >>= 8;
+    }
+    u += h[16]; h[16] = u & 3;
+    u = 5 * (u >> 2);
+    FOR(j,16) {
+      u += h[j];
+      h[j] = u & 255;
+      u >>= 8;
+    }
+    u += h[16]; h[16] = u;
+  }
+
+  FOR(j,17) g[j] = h[j];
+  add1305(h,minusp);
+  s = -(h[16] >> 7);
+  FOR(j,17) h[j] ^= s & (g[j] ^ h[j]);
+
+  FOR(j,16) c[j] = k[j + 16];
+  c[16] = 0;
+  add1305(h,c);
+  FOR(j,16) out[j] = h[j];
+  return 0;
+}
+
+int crypto_onetimeauth_verify(const u8 *h,const u8 *m,u64 n,const u8 *k)
+{
+  u8 x[16];
+  crypto_onetimeauth(x,m,n,k);
+  return crypto_verify_16(h,x);
+}
+
+int crypto_secretbox(u8 *c,const u8 *m,u64 d,const u8 *n,const u8 *k)
+{
+  int i;
+  if (d < 32) return -1;
+  crypto_stream_xor(c,m,d,n,k);
+  crypto_onetimeauth(c + 16,c + 32,d - 32,c);
+  FOR(i,16) c[i] = 0;
+  return 0;
+}
+
+int crypto_secretbox_open(u8 *m,const u8 *c,u64 d,const u8 *n,const u8 *k)
 {
   int i;
   u8 x[32];
@@ -338,14 +265,13 @@ pub fn crypto_secretbox_open(m: &mut [u8], c: &[u8], u64 d, n: &[u8], k: &[u8]) 
   return 0;
 }
 
-fn set25519(r: mut gf, a: gf)
+sv set25519(gf r, const gf a)
 {
-    for i in 0..16 {
-        r[i]=a[i];
-    }
+  int i;
+  FOR(i,16) r[i]=a[i];
 }
 
-fn car25519(o: mut gf)
+sv car25519(gf o)
 {
   int i;
   i64 c;
@@ -357,7 +283,7 @@ fn car25519(o: mut gf)
   }
 }
 
-fn sel25519(p: mut gf,q: mut gf, b: isize /* int */)
+sv sel25519(gf p,gf q,int b)
 {
   i64 t,i,c=~(b-1);
   FOR(i,16) {
@@ -367,7 +293,7 @@ fn sel25519(p: mut gf,q: mut gf, b: isize /* int */)
   }
 }
 
-fn pack25519(o: &mut [u8], n: gf)
+sv pack25519(u8 *o,const gf n)
 {
   int i,j,b;
   gf m,t;
@@ -392,42 +318,41 @@ fn pack25519(o: &mut [u8], n: gf)
   }
 }
 
-fn neq25519(a: gf, b: gf) -> isize /* int */
+static int neq25519(const gf a, const gf b)
 {
-    let c = [u8; 32],
-        d = [u8; 32];
-    pack25519(c,a);
-    pack25519(d,b);
-    crypto_verify_32(c,d)
+  u8 c[32],d[32];
+  pack25519(c,a);
+  pack25519(d,b);
+  return crypto_verify_32(c,d);
 }
 
-fn par25519(a: gf) -> u8
+static u8 par25519(const gf a)
 {
   u8 d[32];
   pack25519(d,a);
   return d[0]&1;
 }
 
-fn unpack25519(o: mut gf, n: &[u8])
+sv unpack25519(gf o, const u8 *n)
 {
   int i;
   FOR(i,16) o[i]=n[2*i]+((i64)n[2*i+1]<<8);
   o[15]&=0x7fff;
 }
 
-fn A(o: mut gf, a: gf, b: gf)
+sv A(gf o,const gf a,const gf b)
 {
   int i;
   FOR(i,16) o[i]=a[i]+b[i];
 }
 
-fn Z(o: mut gf, a: gf, b: gf)
+sv Z(gf o,const gf a,const gf b)
 {
   int i;
   FOR(i,16) o[i]=a[i]-b[i];
 }
 
-fn M(o: mut gf, a: gf, b: gf)
+sv M(gf o,const gf a,const gf b)
 {
   i64 i,j,t[31];
   FOR(i,31) t[i]=0;
@@ -438,12 +363,12 @@ fn M(o: mut gf, a: gf, b: gf)
   car25519(o);
 }
 
-fn S(o: mut gf, a: gf)
+sv S(gf o,const gf a)
 {
   M(o,a,a);
 }
 
-fn inv25519(o: mut gf, i: gf)
+sv inv25519(gf o,const gf i)
 {
   gf c;
   int a;
@@ -455,7 +380,7 @@ fn inv25519(o: mut gf, i: gf)
   FOR(a,16) o[a]=c[a];
 }
 
-fn pow2523(o: mut gf, i: gf)
+sv pow2523(gf o,const gf i)
 {
   gf c;
   int a;
@@ -467,7 +392,7 @@ fn pow2523(o: mut gf, i: gf)
   FOR(a,16) o[a]=c[a];
 }
 
-pub fn crypto_scalarmult(q: &mut [u8], n: &[u8], p: &[u8]) -> isize /* int */
+int crypto_scalarmult(u8 *q,const u8 *n,const u8 *p)
 {
   u8 z[32];
   i64 x[80],r,i;
@@ -518,42 +443,42 @@ pub fn crypto_scalarmult(q: &mut [u8], n: &[u8], p: &[u8]) -> isize /* int */
   return 0;
 }
 
-pub fn crypto_scalarmult_base(q: &mut [u8], n: &[u8]) -> isize /* int */
+int crypto_scalarmult_base(u8 *q,const u8 *n)
 { 
   return crypto_scalarmult(q,n,_9);
 }
 
-pub fn crypto_box_keypair(y: &mut[u8], x: &mut[u8]) -> isize /* int */
+int crypto_box_keypair(u8 *y,u8 *x)
 {
   randombytes(x,32);
   return crypto_scalarmult_base(y,x);
 }
 
-pub fn crypto_box_beforenm(u8 *k,const u8 *y,const u8 *x) -> isize /* int */
+int crypto_box_beforenm(u8 *k,const u8 *y,const u8 *x)
 {
   u8 s[32];
   crypto_scalarmult(s,x,y);
   return crypto_core_hsalsa20(k,_0,s,sigma);
 }
 
-pub fn crypto_box_afternm(u8 *c,const u8 *m,u64 d,const u8 *n,const u8 *k) -> isize /* int */
+int crypto_box_afternm(u8 *c,const u8 *m,u64 d,const u8 *n,const u8 *k)
 {
   return crypto_secretbox(c,m,d,n,k);
 }
 
-pub fn crypto_box_open_afternm(u8 *m,const u8 *c,u64 d,const u8 *n,const u8 *k) -> isize /* int */
+int crypto_box_open_afternm(u8 *m,const u8 *c,u64 d,const u8 *n,const u8 *k)
 {
   return crypto_secretbox_open(m,c,d,n,k);
 }
 
-pub fn crypto_box(u8 *c,const u8 *m,u64 d,const u8 *n,const u8 *y,const u8 *x) -> isize /* int */
+int crypto_box(u8 *c,const u8 *m,u64 d,const u8 *n,const u8 *y,const u8 *x)
 {
   u8 k[32];
   crypto_box_beforenm(k,y,x);
   return crypto_box_afternm(c,m,d,n,k);
 }
 
-pub fn crypto_box_open(u8 *m,const u8 *c,u64 d,const u8 *n,const u8 *y,const u8 *x) -> isize /* int */
+int crypto_box_open(u8 *m,const u8 *c,u64 d,const u8 *n,const u8 *y,const u8 *x)
 {
   u8 k[32];
   crypto_box_beforenm(k,y,x);
@@ -592,7 +517,7 @@ static const u64 K[80] =
   0x4cc5d4becb3e42b6ULL, 0x597f299cfc657e2aULL, 0x5fcb6fab3ad6faecULL, 0x6c44198c4a475817ULL
 };
 
-fn crypto_hashblocks(x: &mut[u8], m: &[u8], n: u64) -> isize /* int */
+int crypto_hashblocks(u8 *x,const u8 *m,u64 n)
 {
   u64 z[8],b[8],a[8],w[16],t;
   int i,j;
@@ -635,7 +560,7 @@ static const u8 iv[64] = {
   0x5b,0xe0,0xcd,0x19,0x13,0x7e,0x21,0x79
 } ;
 
-fn crypto_hash(out: &mut [u8], m: &[u8], n: u64) -> isize /* int */
+int crypto_hash(u8 *out,const u8 *m,u64 n)
 {
   u8 h[64],x[256];
   u64 i,b = n;
@@ -686,14 +611,14 @@ sv add(gf p[4],gf q[4])
   M(p[3], e, h);
 }
 
-fn cswap(p: &[gf;4], q: &[gf;4], b: u8)
+sv cswap(gf p[4],gf q[4],u8 b)
 {
-    for i in 0..4 {
-        sel25519(p[i],q[i],b);
-    }
+  int i;
+  FOR(i,4)
+    sel25519(p[i],q[i],b);
 }
 
-fn pack(r: &mut [u8], p: &[gf;4])
+sv pack(u8 *r,gf p[4])
 {
   gf tx, ty, zi;
   inv25519(zi, p[2]); 
@@ -703,7 +628,7 @@ fn pack(r: &mut [u8], p: &[gf;4])
   r[31] ^= par25519(tx) << 7;
 }
 
-fn scalarmult(p: &[gf;4], q: &[gf;4], s: &[u8])
+sv scalarmult(gf p[4],gf q[4],const u8 *s)
 {
   int i;
   set25519(p[0],gf0);
@@ -719,7 +644,7 @@ fn scalarmult(p: &[gf;4], q: &[gf;4], s: &[u8])
   }
 }
 
-fn scalarbase(p: &[gf;4], s: &[u8])
+sv scalarbase(gf p[4],const u8 *s)
 {
   gf q[4];
   set25519(q[0],X);
@@ -729,30 +654,28 @@ fn scalarbase(p: &[gf;4], s: &[u8])
   scalarmult(p,q,s);
 }
 
-pub fn crypto_sign_keypair(pk: &mut [u8], sk: &mut [u8]) -> isize /* int */
+int crypto_sign_keypair(u8 *pk, u8 *sk)
 {
-    let mut d = [u8; 64],
-        p = [gf;4];
+  u8 d[64];
+  gf p[4];
+  int i;
 
-    randombytes(sk, 32);
-    crypto_hash(&mut d, sk, 32);
-    d[0] &= 248;
-    d[31] &= 127;
-    d[31] |= 64;
+  randombytes(sk, 32);
+  crypto_hash(d, sk, 32);
+  d[0] &= 248;
+  d[31] &= 127;
+  d[31] |= 64;
 
-    scalarbase(&p,&d);
-    pack(&pk,&p);
+  scalarbase(p,d);
+  pack(pk,p);
 
-    for i in 0..32 {
-        sk[32 + i] = pk[i];
-    }
-
-    0
+  FOR(i,32) sk[32 + i] = pk[i];
+  return 0;
 }
 
 static const u64 L[32] = {0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c, 0xf7, 0xa2, 0xde, 0xf9, 0xde, 0x14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x10};
 
-fn modL(r: &mut [u8], x: &mut [i64;64])
+sv modL(u8 *r,i64 x[64])
 {
   i64 carry,i,j;
   for (i = 63;i >= 32;--i) {
@@ -778,7 +701,7 @@ fn modL(r: &mut [u8], x: &mut [i64;64])
   }
 }
 
-fn reduce(r: &mut [u8])
+sv reduce(u8 *r)
 {
   i64 x[64],i;
   FOR(i,64) x[i] = (u64) r[i];
@@ -786,7 +709,7 @@ fn reduce(r: &mut [u8])
   modL(r,x);
 }
 
-fn crypto_sign(sm: &mut [u8], m: &[u8], n: u64, sk: &[u8]) -> isize /* int */
+int crypto_sign(u8 *sm,u64 *smlen,const u8 *m,u64 n,const u8 *sk)
 {
   u8 d[64],h[64],r[64];
   i64 i,j,x[64];
@@ -818,7 +741,7 @@ fn crypto_sign(sm: &mut [u8], m: &[u8], n: u64, sk: &[u8]) -> isize /* int */
   return 0;
 }
 
-fn unpackneg(r: &[gf;4], p: &[u8; 32]) -> isize /* int */
+static int unpackneg(gf r[4],const u8 p[32])
 {
   gf t, chk, num, den, den2, den4, den6;
   set25519(r[2],gf1);
@@ -854,7 +777,7 @@ fn unpackneg(r: &[gf;4], p: &[u8; 32]) -> isize /* int */
   return 0;
 }
 
-pub fn crypto_sign_open(m: &mut [u8], mlen: &mut u64, sm : &[u8], n : u64, pk: &[u8]) -> isize /* int */
+int crypto_sign_open(u8 *m,u64 *mlen,const u8 *sm,u64 n,const u8 *pk)
 {
   int i;
   u8 t[32],h[64];
@@ -884,9 +807,4 @@ pub fn crypto_sign_open(m: &mut [u8], mlen: &mut u64, sm : &[u8], n : u64, pk: &
   FOR(i,n) m[i] = sm[i + 64];
   *mlen = n;
   return 0;
-}
-
-
-#[test]
-fn it_works() {
 }

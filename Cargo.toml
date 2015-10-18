@@ -1,9 +1,9 @@
 [package]
-name = "feldspar"
+name = "sodalite"
 version = "0.1.0"
 authors = ["Cody P Schafer <dev@codyps.com>"]
 description = "Nothing Yet"
 license = "AGPL-3.0 WITH eCos-exception-2.0"
-homepage = "https://github.com/jmesmon/feldspar"
-repository = "https://github.com/jmesmon/feldspar.git"
+homepage = "https://github.com/jmesmon/sodalite"
+repository = "https://github.com/jmesmon/sodalite.git"
 
