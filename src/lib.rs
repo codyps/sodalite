@@ -314,28 +314,33 @@ pub fn crypto_onetimeauth_verify(h: &[u8], m: &[u8], n: u64, k: &[u8]) -> isize 
 
 pub fn crypto_secretbox(c: &mut [u8], m &[u8], d: u64, n: &[u8], k: &[u8]) -> isize /* int */
 {
-  if d < 32 {
-      return -1;
-  }
+    if d < 32 {
+        return -1;
+    }
 
-  crypto_stream_xor(c,m,d,n,k);
-  crypto_onetimeauth(c + 16,c + 32,d - 32,c);
-  for i in 0..16 {
-    c[i] = 0;
-  }
-  return 0;
+    crypto_stream_xor(c,m,d,n,k);
+    crypto_onetimeauth(c + 16,c + 32,d - 32,c);
+    for i in 0..16 {
+        c[i] = 0;
+    }
+    return 0;
 }
 
 pub fn crypto_secretbox_open(m: &mut [u8], c: &[u8], u64 d, n: &[u8], k: &[u8]) -> isize /* int */
 {
-  int i;
-  u8 x[32];
-  if (d < 32) return -1;
-  crypto_stream(x,32,n,k);
-  if (crypto_onetimeauth_verify(c + 16,c + 32,d - 32,x) != 0) return -1;
-  crypto_stream_xor(m,c,d,n,k);
-  FOR(i,32) m[i] = 0;
-  return 0;
+    if d < 32 {
+        return -1;
+    }
+    let x = [0u8; 32];
+    crypto_stream(&mut x,32,n,k);
+    if crypto_onetimeauth_verify(c + 16,c + 32,d - 32,x) != 0 {
+        return -1;
+    }
+    crypto_stream_xor(m,c,d,n,k);
+    for i in 0..32 {
+        m[i] = 0;
+    }
+    0
 }
 
 fn set25519(r: mut gf, a: gf)
@@ -347,49 +352,49 @@ fn set25519(r: mut gf, a: gf)
 
 fn car25519(o: mut gf)
 {
-  int i;
-  i64 c;
-  FOR(i,16) {
-    o[i]+=(1LL<<16);
-    c=o[i]>>16;
-    o[(i+1)*(i<15)]+=c-1+37*(c-1)*(i==15);
-    o[i]-=c<<16;
-  }
+    for i in 0..16 {
+        o[i]+=(1LL<<16);
+        let c = o[i]>>16;
+        o[(i+1)*(i<15)]+=c-1+37*(c-1)*(i==15);
+        o[i]-=c<<16;
+    }
 }
 
 fn sel25519(p: mut gf,q: mut gf, b: isize /* int */)
 {
-  i64 t,i,c=~(b-1);
-  FOR(i,16) {
-    t= c&(p[i]^q[i]);
-    p[i]^=t;
-    q[i]^=t;
-  }
+    let c : i64 = ~(b - 1);
+    for i in 0..16 {
+        let t = c & (p[i]^q[i]);
+        p[i]^=t;
+        q[i]^=t;
+    }
 }
 
 fn pack25519(o: &mut [u8], n: gf)
 {
-  int i,j,b;
-  gf m,t;
-  FOR(i,16) t[i]=n[i];
-  car25519(t);
-  car25519(t);
-  car25519(t);
-  FOR(j,2) {
-    m[0]=t[0]-0xffed;
-    for(i=1;i<15;i++) {
-      m[i]=t[i]-0xffff-((m[i-1]>>16)&1);
-      m[i-1]&=0xffff;
+    int i,j,b;
+    gf m,t;
+    for i in 0..16 {
+        t[i] = n[i];
     }
-    m[15]=t[15]-0x7fff-((m[14]>>16)&1);
-    b=(m[15]>>16)&1;
-    m[14]&=0xffff;
-    sel25519(t,m,1-b);
-  }
-  FOR(i,16) {
-    o[2*i]=t[i]&0xff;
-    o[2*i+1]=t[i]>>8;
-  }
+    car25519(t);
+    car25519(t);
+    car25519(t);
+    for j in 0..2 {
+        m[0]=t[0]-0xffed;
+        for(i=1;i<15;i++) {
+            m[i]=t[i]-0xffff-((m[i-1]>>16)&1);
+            m[i-1]&=0xffff;
+        }
+        m[15]=t[15]-0x7fff-((m[14]>>16)&1);
+        b=(m[15]>>16)&1;
+        m[14]&=0xffff;
+        sel25519(t,m,1-b);
+    }
+    for i in 0..16 {
+        o[2*i]=t[i]&0xff;
+        o[2*i+1]=t[i]>>8;
+    }
 }
 
 fn neq25519(a: gf, b: gf) -> isize /* int */
@@ -403,28 +408,31 @@ fn neq25519(a: gf, b: gf) -> isize /* int */
 
 fn par25519(a: gf) -> u8
 {
-  u8 d[32];
-  pack25519(d,a);
-  return d[0]&1;
+    let d = [0u8;32]
+    pack25519(&mut d, a);
+    return d[0]&1;
 }
 
 fn unpack25519(o: mut gf, n: &[u8])
 {
-  int i;
-  FOR(i,16) o[i]=n[2*i]+((i64)n[2*i+1]<<8);
-  o[15]&=0x7fff;
+    for i in 0..16 {
+        o[i]=n[2*i]+((i64)n[2*i+1]<<8);
+    }
+    o[15]&=0x7fff;
 }
 
 fn A(o: mut gf, a: gf, b: gf)
 {
-  int i;
-  FOR(i,16) o[i]=a[i]+b[i];
+    for i in 0..16 {
+        o[i]=a[i]+b[i];
+    }
 }
 
 fn Z(o: mut gf, a: gf, b: gf)
 {
-  int i;
-  FOR(i,16) o[i]=a[i]-b[i];
+    for i in 0..16 {
+        o[i]=a[i]-b[i];
+    }
 }
 
 fn M(o: mut gf, a: gf, b: gf)
@@ -520,53 +528,53 @@ pub fn crypto_scalarmult(q: &mut [u8], n: &[u8], p: &[u8]) -> isize /* int */
 
 pub fn crypto_scalarmult_base(q: &mut [u8], n: &[u8]) -> isize /* int */
 { 
-  return crypto_scalarmult(q,n,_9);
+    crypto_scalarmult(q,n,_9)
 }
 
 pub fn crypto_box_keypair(y: &mut[u8], x: &mut[u8]) -> isize /* int */
 {
-  randombytes(x,32);
-  return crypto_scalarmult_base(y,x);
+    randombytes(x,32);
+    crypto_scalarmult_base(y,x)
 }
 
-pub fn crypto_box_beforenm(u8 *k,const u8 *y,const u8 *x) -> isize /* int */
+pub fn crypto_box_beforenm(k: &mut[u8], y: &[u8], x: &[u8]) -> isize /* int */
 {
-  u8 s[32];
-  crypto_scalarmult(s,x,y);
-  return crypto_core_hsalsa20(k,_0,s,sigma);
+    let s = [u8; 32];
+    crypto_scalarmult(&mut s,x,y);
+    crypto_core_hsalsa20(k,_0, &s,sigma);
 }
 
-pub fn crypto_box_afternm(u8 *c,const u8 *m,u64 d,const u8 *n,const u8 *k) -> isize /* int */
+pub fn crypto_box_afternm(c: &mut[u8], m: &[u8], d: u64, n: &[u8], k: &[u8]) -> isize /* int */
 {
-  return crypto_secretbox(c,m,d,n,k);
+    crypto_secretbox(c,m,d,n,k)
 }
 
-pub fn crypto_box_open_afternm(u8 *m,const u8 *c,u64 d,const u8 *n,const u8 *k) -> isize /* int */
+pub fn crypto_box_open_afternm(m: &mut[u8], c: &[u8], d: u64, n: &[u8], k: &[u8]) -> isize /* int */
 {
-  return crypto_secretbox_open(m,c,d,n,k);
+    crypto_secretbox_open(m,c,d,n,k)
 }
 
-pub fn crypto_box(u8 *c,const u8 *m,u64 d,const u8 *n,const u8 *y,const u8 *x) -> isize /* int */
+pub fn crypto_box(c: &mut [u8], m: &[u8], d: u64, n: &[u8], y: &[u8], x: &[u8]) -> isize /* int */
 {
-  u8 k[32];
-  crypto_box_beforenm(k,y,x);
-  return crypto_box_afternm(c,m,d,n,k);
+    let k = [u8; 32];
+    crypto_box_beforenm(&mut k,y,x);
+    crypto_box_afternm(c,m,d,n, &k)
 }
 
 pub fn crypto_box_open(u8 *m,const u8 *c,u64 d,const u8 *n,const u8 *y,const u8 *x) -> isize /* int */
 {
-  u8 k[32];
-  crypto_box_beforenm(k,y,x);
-  return crypto_box_open_afternm(m,c,d,n,k);
+    let k = [undef<u8>(); 32];
+    crypto_box_beforenm(&mut k,y,x);
+    crypto_box_open_afternm(m,c,d,n, &k)
 }
 
-static u64 R(u64 x,int c) { return (x >> c) | (x << (64 - c)); }
-static u64 Ch(u64 x,u64 y,u64 z) { return (x & y) ^ (~x & z); }
-static u64 Maj(u64 x,u64 y,u64 z) { return (x & y) ^ (x & z) ^ (y & z); }
-static u64 Sigma0(u64 x) { return R(x,28) ^ R(x,34) ^ R(x,39); }
-static u64 Sigma1(u64 x) { return R(x,14) ^ R(x,18) ^ R(x,41); }
-static u64 sigma0(u64 x) { return R(x, 1) ^ R(x, 8) ^ (x >> 7); }
-static u64 sigma1(u64 x) { return R(x,19) ^ R(x,61) ^ (x >> 6); }
+fn R(x: u64, c: isize /* int */) -> u64 { (x >> c) | (x << (64 - c)) } 
+fn Ch(x: u64, y: u64, z: u64) -> u64 { (x & y) ^ (~x & z) }
+fn Maj(x: u64, y: u64, z: u64) -> u64 { (x & y) ^ (x & z) ^ (y & z) }
+fn Sigma0(x: u64) -> u64 { R(x,28) ^ R(x,34) ^ R(x,39) }
+fn Sigma1(x: u64) -> u64 { R(x,14) ^ R(x,18) ^ R(x,41) }
+fn sigma0(x: u64) -> u64 { R(x, 1) ^ R(x, 8) ^ (x >> 7) }
+fn sigma1(x: u64) -> u64 { R(x,19) ^ R(x,61) ^ (x >> 6) }
 
 static const u64 K[80] = 
 {
@@ -786,36 +794,52 @@ fn reduce(r: &mut [u8])
   modL(r,x);
 }
 
-fn crypto_sign(sm: &mut [u8], m: &[u8], n: u64, sk: &[u8]) -> isize /* int */
+fn crypto_sign(sm: &mut [u8], smlen: &mut u64, m: &[u8], n: u64, sk: &[u8]) -> isize /* int */
 {
-  u8 d[64],h[64],r[64];
-  i64 i,j,x[64];
-  gf p[4];
+    let mut d = [0u8; 64],
+        h = [u8; 64],
+        r = [u8;64],
+        x = [i64; 64],
+        p = [gf; 4];
+    i64 i,j;
 
-  crypto_hash(d, sk, 32);
-  d[0] &= 248;
-  d[31] &= 127;
-  d[31] |= 64;
+    crypto_hash(d, sk, 32);
+    d[0] &= 248;
+    d[31] &= 127;
+    d[31] |= 64;
 
-  *smlen = n+64;
-  FOR(i,n) sm[64 + i] = m[i];
-  FOR(i,32) sm[32 + i] = d[32 + i];
+    *smlen = n+64;
+    for i in 0..n {
+        sm[64 + i] = m[i];
+    }
+    for i in 0..32 {
+        sm[32 + i] = d[32 + i];
+    }
 
-  crypto_hash(r, sm+32, n+32);
-  reduce(r);
-  scalarbase(p,r);
-  pack(sm,p);
+    crypto_hash(r, sm+32, n+32);
+    reduce(r);
+    scalarbase(p,r);
+    pack(sm,p);
 
-  FOR(i,32) sm[i+32] = sk[i+32];
-  crypto_hash(h,sm,n + 64);
-  reduce(h);
+    for i in 0..32 {
+        sm[i+32] = sk[i+32];
+    }
+    crypto_hash(h,sm,n + 64);
+    reduce(h);
 
-  FOR(i,64) x[i] = 0;
-  FOR(i,32) x[i] = (u64) r[i];
-  FOR(i,32) FOR(j,32) x[i+j] += h[i] * (u64) d[j];
-  modL(sm + 32,x);
+    let x = [0u8; 64];
+    for i in 0..32 {
+        x[i] = (u64) r[i];
+    }
 
-  return 0;
+    for i in 0..32 {
+        for j in 0..32 {
+            x[i+j] += h[i] * (u64) d[j];
+        }
+    }
+    modL(sm + 32,x);
+
+    0
 }
 
 fn unpackneg(r: &[gf;4], p: &[u8; 32]) -> isize /* int */
