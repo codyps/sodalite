@@ -1,5 +1,8 @@
 use std::cmp;
+use std::mem;
 extern crate rand;
+
+use rand::Rng;
 
 type Gf = [i64;16];
 const GfEmpty : Gf = [0i64;16];
@@ -19,9 +22,7 @@ const I: Gf = [0xa0b0, 0x4a0e, 0x1b27, 0xc4ee, 0xe478, 0xad2f, 0x1806, 0x2f43, 0
 fn randombytes(x: &mut [u8])
 {
   let mut rng = rand::thread_rng();
-  for v in x.iter_mut() {
-    v = rng.gen()
-  }
+  rng.fill_bytes(x);
 }
 
 fn L32(x: u32, c: usize /* int */) -> u32
@@ -31,17 +32,17 @@ fn L32(x: u32, c: usize /* int */) -> u32
 
 fn ld32(x: &[u8;4]) -> u32
 {
-    let u : u32 = x[3];
-    u = (u << 8) | x[2];
-    u = (u << 8) | x[1];
-    (u << 8) | x[0]
+    let u = x[3] as u32;
+    u = (u << 8) | (x[2] as u32);
+    u = (u << 8) | (x[1] as u32);
+    (u << 8) | (x[0] as u32)
 }
 
 fn dl64(x: &[u8;8]) -> u64
 {
     let u = 0u64;
     for v in x {
-        u = u << 8 | v;
+        u = u << 8 | (*v as u64);
     }
     u
 }
@@ -49,7 +50,7 @@ fn dl64(x: &[u8;8]) -> u64
 fn st32(x: &mut [u8;4], u: u32)
 {
     for v in x.iter_mut() {
-        v = u;
+        *v = u as u8;
         u = u >> 8;
     }
 }
@@ -57,33 +58,38 @@ fn st32(x: &mut [u8;4], u: u32)
 fn ts64(x: &mut [u8],u: u64)
 {
     for v in x.iter_mut().rev() {
-        v = u;
+        *v = u as u8;
         u >>= 8;
     }
 }
 
-fn vn(x: &[u8], y: &[u8]) -> isize /* int */
+fn vn(x: &[u8], y: &[u8]) -> u8
 {
     assert_eq!(x.len(), y.len());
-    let d = 0u32;
-    for (v, w) in (x,y).zip() {
-        d |= v ^ x;
+    let d = 0;
+    for i in 0..x.len() {
+        d |= x[i] ^ y[i];
     }
 
     (1 & ((d - 1) >> 8)) - 1
 }
 
-pub fn crypto_verify_16(x: &[u8;16], y: &[u8;16]) -> isize /* int */
+pub fn crypto_verify_16(x: &[u8;16], y: &[u8;16]) -> u8
 {
-    vn(x[..], y[..])
+    vn(&x[..], &y[..])
 }
 
-pub fn crypto_verify_32(x: &[u8;32], y: &[u8;32]) -> isize /* int */
+pub fn crypto_verify_32(x: &[u8;32], y: &[u8;32]) -> u8
 {
-    vn(x[..], y[..])
+    vn(&x[..], &y[..])
 }
 
-fn core(out : &mut[u8], inx: &[u8], k: &[u8], c: &[u8], h: isize /* int */)
+fn index_4<T>(a: &[T], start: usize) -> &[T;4] {
+  let x = &a[start..start+4];
+  unsafe { mem::transmute(x as *const [T] as *const T) }
+}
+
+fn core(out: &mut[u8], inx: &[u8], k: &[u8], c: &[u8], h: bool)
 {
     let w = [0u32; 16];
     let x = [0u32; 16];
@@ -91,10 +97,10 @@ fn core(out : &mut[u8], inx: &[u8], k: &[u8], c: &[u8], h: isize /* int */)
     let t = [0u32; 4];
 
     for i in 0..4 {
-        x[5*i] = ld32(c+4*i);
-        x[1+i] = ld32(k+4*i);
-        x[6+i] = ld32(inx+4*i);
-        x[11+i] = ld32(k+16+4*i);
+        x[5*i] = ld32(index_4(c, 4*i));
+        x[1+i] = ld32(index_4(k, 4*i));
+        x[6+i] = ld32(index_4(inx, 4*i));
+        x[11+i] = ld32(index_4(k, 16+4*i));
     }
 
     for i in 0..16 {
@@ -124,12 +130,12 @@ fn core(out : &mut[u8], inx: &[u8], k: &[u8], c: &[u8], h: isize /* int */)
             x[i] += y[i];
         }
         for i in 0..4 {
-            x[5*i] -= ld32(c+4*i);
-            x[6+i] -= ld32(inx+4*i);
+            x[5*i] -= ld32(index_4(c, 4*i));
+            x[6+i] -= ld32(index_4(inx, 4*i));
         }
         for i in 0..4 {
-            st32(out+4*i,x[5*i]);
-            st32(out+16+4*i,x[6+i]);
+            st32(index_4(out, 4*i), x[5*i]);
+            st32(index_4(out, 16+4*i), x[6+i]);
         }
     } else {
         for i in 0..16 {
@@ -240,7 +246,7 @@ pub fn crypto_onetimeauth(out: &mut [u8], m: &[u8], n: u64, k: &[u8]) -> isize /
 
     for j in 0..16 {
         r[j] = k[j];
-    } 
+    }
 
     r[3]&=15;
     r[4]&=252;
@@ -403,14 +409,14 @@ fn pack25519(o: &mut [u8], n: Gf)
     }
 }
 
-fn neq25519(a: Gf, b: Gf) -> isize /* int */
+fn neq25519(a: Gf, b: Gf) -> bool
 {
     /* TODO: uninit in tweet-nacl */
     let c = [0u8; 32];
     let d = [0u8; 32];
     pack25519(c,a);
     pack25519(d,b);
-    crypto_verify_32(c,d)
+    crypto_verify_32(c,d) != 0
 }
 
 fn par25519(a: Gf) -> u8
@@ -975,7 +981,7 @@ fn unpackneg(r: &[Gf;4], p: &[u8; 32]) -> isize /* int */
   return 0;
 }
 
-pub fn crypto_sign_open(m: &mut [u8], mlen: &mut u64, sm : &[u8], n : u64, pk: &[u8]) -> isize /* int */
+pub fn crypto_sign_open(m: &mut [u8], mlen: &mut u64, sm : &[u8], n : u64, pk: &[u8;32]) -> isize /* int */
 {
   let t = [0u8;32];
   let h = [0u8;64];
@@ -988,7 +994,7 @@ pub fn crypto_sign_open(m: &mut [u8], mlen: &mut u64, sm : &[u8], n : u64, pk: &
     return -1;
   }
 
-  if unpackneg(q,pk) {
+  if unpackneg(&q,pk) {
     return -1;
   }
 
@@ -1004,7 +1010,7 @@ pub fn crypto_sign_open(m: &mut [u8], mlen: &mut u64, sm : &[u8], n : u64, pk: &
 
   scalarbase(q,sm + 32);
   add(p,q);
-  pack(t,p);
+  pack(t, &p);
 
   n -= 64;
   if crypto_verify_32(sm, t) {
