@@ -32,7 +32,7 @@ fn L32(x: u32, c: usize /* int */) -> u32
 
 fn ld32(x: &[u8;4]) -> u32
 {
-    let u = x[3] as u32;
+    let mut u = x[3] as u32;
     u = (u << 8) | (x[2] as u32);
     u = (u << 8) | (x[1] as u32);
     (u << 8) | (x[0] as u32)
@@ -40,14 +40,14 @@ fn ld32(x: &[u8;4]) -> u32
 
 fn dl64(x: &[u8;8]) -> u64
 {
-    let u = 0u64;
+    let mut u = 0u64;
     for v in x {
         u = u << 8 | (*v as u64);
     }
     u
 }
 
-fn st32(x: &mut [u8;4], u: u32)
+fn st32(x: &mut [u8;4], mut u: u32)
 {
     for v in x.iter_mut() {
         *v = u as u8;
@@ -55,7 +55,7 @@ fn st32(x: &mut [u8;4], u: u32)
     }
 }
 
-fn ts64(x: &mut [u8],u: u64)
+fn ts64(x: &mut [u8], mut u: u64)
 {
     for v in x.iter_mut().rev() {
         *v = u as u8;
@@ -66,7 +66,7 @@ fn ts64(x: &mut [u8],u: u64)
 fn vn(x: &[u8], y: &[u8]) -> u8
 {
     assert_eq!(x.len(), y.len());
-    let d = 0;
+    let mut d = 0;
     for i in 0..x.len() {
         d |= x[i] ^ y[i];
     }
@@ -105,10 +105,10 @@ index_n! {index_32 index_mut_32 32}
 
 fn core(out: &mut[u8], inx: &[u8], k: &[u8], c: &[u8], h: bool)
 {
-    let w = [0u32; 16];
-    let x = [0u32; 16];
-    let y = [0u32; 16];
-    let t = [0u32; 4];
+    let mut w = [0u32; 16];
+    let mut x = [0u32; 16];
+    let mut y = [0u32; 16];
+    let mut t = [0u32; 4];
 
     for i in 0..4 {
         x[5*i] = ld32(index_4(&c[4*i..]));
@@ -174,8 +174,8 @@ static sigma : &'static [u8;16] = b"expand 32-byte k";
 
 pub fn crypto_stream_salsa20_xor(mut c: &mut [u8], mut m: Option<&[u8]>, b: usize, n: &[u8], k: &[u8]) -> isize /* int */
 {
-    let z = [0u8;16];
-    let x = [0u8;64];
+    let mut z = [0u8;16];
+    let mut x = [0u8;64];
 
     if b == 0 {
         return 0;
@@ -205,9 +205,8 @@ pub fn crypto_stream_salsa20_xor(mut c: &mut [u8], mut m: Option<&[u8]>, b: usiz
         }
         b -= 64;
         c = &mut c[64..];
-        match m {
-          Some(mv) => m = Some(&mut mv[64..]),
-          None => {}
+        if m.is_some() {
+          m = Some(&m.unwrap()[64..])
         }
     }
 
@@ -240,7 +239,7 @@ pub fn crypto_stream_xor(c: &mut [u8], m: &[u8], d: usize, n: &[u8], k: &[u8]) -
 {
     let s = [0u8; 32];
     crypto_core_hsalsa20(&mut s,n,k,sigma);
-    crypto_stream_salsa20_xor(c,Some(m),d,&n[16..], &s);
+    crypto_stream_salsa20_xor(c,Some(m),d,&n[16..], &s)
 }
 
 fn add1305(h: &mut [u32; 16], c: &[u32; 16])
@@ -609,7 +608,7 @@ pub fn crypto_box_beforenm(k: &mut[u8], y: &[u8], x: &[u8]) -> isize /* int */
     /* TODO: uninit in tweet-nacl */
     let s = [0u8; 32];
     crypto_scalarmult(&mut s,x,y);
-    crypto_core_hsalsa20(k, &_0, &s, sigma);
+    crypto_core_hsalsa20(k, &_0, &s, sigma)
 }
 
 pub fn crypto_box_afternm(c: &mut[u8], m: &[u8], d: usize, n: &[u8], k: &[u8]) -> isize /* int */
