@@ -5,7 +5,7 @@ extern crate rand;
 use rand::Rng;
 
 type Gf = [i64;16];
-const GfEmpty : Gf = [0i64;16];
+const GfEmpty : Gf = [0;16];
 const Gf0 : Gf = [0; 16];
 const Gf1 : Gf = [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
 
