@@ -548,23 +548,23 @@ fn pow2523(o: &mut Gf, i: Gf)
 
 pub fn crypto_scalarmult(q: &mut [u8], n: &[u8], p: &[u8]) -> isize /* int */
 {
-    let z = [0u8;32];
+    let mut z = [0u8;32];
     /* TODO: not init in tweet-nacl */
-    let x = [0i64;80];
+    let mut x = [0i64;80];
 
     /* TODO: not init in tweet-nacl { */
-    let e = GfEmpty;
-    let f = GfEmpty;
+    let mut e = GfEmpty;
+    let mut f = GfEmpty;
     /* } */
-    let a = GfEmpty;
-    let c = GfEmpty;
-    let d = GfEmpty;
+    let mut a = GfEmpty;
+    let mut c = GfEmpty;
+    let mut d = GfEmpty;
 
     z[31]=(n[31]&127)|64;
     z[0]&=248;
     unpack25519(index_mut_16(&mut x),p);
     /* TODO: not init in tweet-nacl */
-    let b = GfEmpty;
+    let mut b = GfEmpty;
     for i in 0..16 {
         b[i] = x[i];
     }
@@ -940,9 +940,9 @@ fn reduce(r: &mut [u8])
 fn crypto_sign(sm: &mut [u8], smlen: &mut usize, m: &[u8], n: usize, sk: &[u8]) -> isize /* int */
 {
     let mut d = [0u8; 64];
-    let h = [0u8; 64];
-    let r = [0u8;64];
-    let p = [GfEmpty; 4];
+    let mut h = [0u8; 64];
+    let mut r = [0u8;64];
+    let mut p = [GfEmpty; 4];
 
     crypto_hash(&mut d, sk, 32);
     d[0] &= 248;
