@@ -21,8 +21,8 @@ const I: Gf = [0xa0b0, 0x4a0e, 0x1b27, 0xc4ee, 0xe478, 0xad2f, 0x1806, 0x2f43, 0
 
 fn randombytes(x: &mut [u8])
 {
-  let mut rng = rand::thread_rng();
-  rng.fill_bytes(x);
+    let mut rng = rand::thread_rng();
+    rng.fill_bytes(x);
 }
 
 fn L32(x: u32, c: usize /* int */) -> u32
@@ -85,17 +85,17 @@ pub fn crypto_verify_32(x: &[u8;32], y: &[u8;32]) -> u8
 }
 
 macro_rules! index_n {
-  ($name:ident $name_mut:ident $ct:expr) => {
-    fn $name<T>(a: &[T]) -> &[T;$ct] {
-      let x = &a[0..$ct];
-      unsafe { mem::transmute(x as *const [T] as *const T) }
-    }
+    ($name:ident $name_mut:ident $ct:expr) => {
+        fn $name<T>(a: &[T]) -> &[T;$ct] {
+            let x = &a[0..$ct];
+            unsafe { mem::transmute(x as *const [T] as *const T) }
+        }
 
-    fn $name_mut<T>(a: &mut [T]) -> &mut [T;$ct] {
-      let x = &mut a[0..$ct];
-      unsafe { mem::transmute(x as *mut [T] as *mut T) }
+        fn $name_mut<T>(a: &mut [T]) -> &mut [T;$ct] {
+            let x = &mut a[0..$ct];
+            unsafe { mem::transmute(x as *mut [T] as *mut T) }
+        }
     }
-  }
 }
 
 index_n! {index_4 index_mut_4 4}
@@ -160,14 +160,14 @@ fn core(out: &mut[u8], inx: &[u8], k: &[u8], c: &[u8], h: bool)
 
 pub fn crypto_core_salsa20(out: &mut [u8], inx: &[u8], k: &[u8], c: &[u8]) -> isize /* int */
 {
-  core(out,inx,k,c,false);
-  0
+    core(out,inx,k,c,false);
+    0
 }
 
 pub fn crypto_core_hsalsa20(out: &mut [u8], inx: &[u8], k: &[u8], c: &[u8]) -> isize /* int */
 {
-  core(out,inx,k,c,true);
-  0
+    core(out,inx,k,c,true);
+    0
 }
 
 static sigma : &'static [u8;16] = b"expand 32-byte k";
@@ -322,7 +322,7 @@ pub fn crypto_onetimeauth(out: &mut [u8;16], mut m: &[u8], mut n: usize, k: &[u8
     }
 
     for j in 0..17 {
-      g[j] = h[j];
+        g[j] = h[j];
     }
     add1305(index_mut_16(&mut h), index_16(&minusp));
     let s : u32 = -(h[16] >> 7);
@@ -331,7 +331,7 @@ pub fn crypto_onetimeauth(out: &mut [u8;16], mut m: &[u8], mut n: usize, k: &[u8
     }
 
     for j in 0..16 {
-       c[j] = k[j + 16] as u32;
+        c[j] = k[j + 16] as u32;
     }
     c[16] = 0;
     add1305(index_mut_16(&mut h), index_16(&c));
@@ -379,7 +379,7 @@ pub fn crypto_secretbox_open(m: &mut [u8], c: &[u8], d: usize, n: &[u8], k: &[u8
     }
     let mut x = [0u8; 32];
     crypto_stream(&mut x,32,n,k);
-    if crypto_onetimeauth_verify(index_mut_16(&mut c[16..]), &c[32..], d - 32, &x) != 0 {
+    if crypto_onetimeauth_verify(index_16(&c[16..]), &c[32..], d - 32, &x) != 0 {
         return -1;
     }
     crypto_stream_xor(m,c,d,n,k);
@@ -419,8 +419,10 @@ fn sel25519(p: &mut Gf,q: &mut Gf, b: isize /* int */)
 
 fn pack25519(o: &mut [u8], n: Gf)
 {
-    let mut m : Gf;
-    let mut t : Gf;
+    /* XXX: uninit in tweet-nacl */
+    let mut m : Gf = GfEmpty;
+
+    let mut t : Gf = n;
     for i in 0..16 {
         t[i] = n[i];
     }
@@ -448,8 +450,11 @@ fn pack25519(o: &mut [u8], n: Gf)
 fn neq25519(a: Gf, b: Gf) -> bool
 {
     /* TODO: uninit in tweet-nacl */
-    let c = [0u8; 32];
-    let d = [0u8; 32];
+    let mut c = [0u8; 32];
+
+    /* TODO: uninit in tweet-nacl */
+    let mut d = [0u8; 32];
+
     pack25519(&mut c,a);
     pack25519(&mut d,b);
     crypto_verify_32(&c, &d) != 0
@@ -457,7 +462,7 @@ fn neq25519(a: Gf, b: Gf) -> bool
 
 fn par25519(a: Gf) -> u8
 {
-    let d = [0u8;32];
+    let mut d = [0u8;32];
     pack25519(&mut d, a);
     return d[0]&1;
 }
@@ -486,121 +491,121 @@ fn Z(o: &mut Gf, a: Gf, b: Gf)
 
 fn M(o: &mut Gf, a: Gf, b: Gf)
 {
-  let t = [0i64;31];
-  for i in 0..16 {
-    for j in 0..16 {
-      t[i+j]+=a[i]*b[j];
+    let mut t = [0i64;31];
+    for i in 0..16 {
+        for j in 0..16 {
+            t[i+j]+=a[i]*b[j];
+        }
     }
-  }
-  for i in 0..16 {
-    t[i]+=38*t[i+16];
-  }
-  for i in 0..16 {
-    o[i]=t[i];
-  }
-  car25519(o);
-  car25519(o);
+    for i in 0..16 {
+        t[i]+=38*t[i+16];
+    }
+    for i in 0..16 {
+        o[i]=t[i];
+    }
+    car25519(o);
+    car25519(o);
 }
 
 fn S(o: &mut Gf, a: Gf)
 {
-  M(o,a,a);
+    M(o,a,a);
 }
 
 fn inv25519(o: &mut Gf, i: Gf)
 {
-  let c = GfEmpty;
-  for a in 0..16 {
-   c[a]=i[a];
-  }
-  for a in (0..254).rev() {
-    S(&mut c,c);
-    if a!=2 && a!=4 {
-      M(&mut c,c,i);
+    let mut c = GfEmpty;
+    for a in 0..16 {
+        c[a]=i[a];
     }
-  }
-  for a in 0..16 {
-    o[a]=c[a];
-  }
+    for a in (0..254).rev() {
+        S(&mut c,c);
+        if a!=2 && a!=4 {
+            M(&mut c,c,i);
+        }
+    }
+    for a in 0..16 {
+        o[a]=c[a];
+    }
 }
 
 fn pow2523(o: &mut Gf, i: Gf)
 {
-  let c = GfEmpty;
-  for a in 0..16 {
-    c[a]=i[a];
-  }
-  for a in (0..251).rev() {
-    S(&mut c,c);
-    if a!=1 {
-      M(&mut c,c,i);
+    let mut c = GfEmpty;
+    for a in 0..16 {
+        c[a]=i[a];
     }
-  }
-  for a in 0..16 {
-    o[a]=c[a];
-  }
+    for a in (0..251).rev() {
+        S(&mut c,c);
+        if a!=1 {
+            M(&mut c,c,i);
+        }
+    }
+    for a in 0..16 {
+        o[a]=c[a];
+    }
 }
 
 pub fn crypto_scalarmult(q: &mut [u8], n: &[u8], p: &[u8]) -> isize /* int */
 {
-  let z = [0u8;32];
-  /* TODO: not init in tweet-nacl */
-  let x = [0i64;80];
+    let z = [0u8;32];
+    /* TODO: not init in tweet-nacl */
+    let x = [0i64;80];
 
-  /* TODO: not init in tweet-nacl { */
-  let e = GfEmpty;
-  let f = GfEmpty;
-  /* } */
-  let a = GfEmpty;
-  let c = GfEmpty;
-  let d = GfEmpty;
+    /* TODO: not init in tweet-nacl { */
+    let e = GfEmpty;
+    let f = GfEmpty;
+    /* } */
+    let a = GfEmpty;
+    let c = GfEmpty;
+    let d = GfEmpty;
 
-  z[31]=(n[31]&127)|64;
-  z[0]&=248;
-  unpack25519(index_mut_16(&mut x),p);
-  /* TODO: not init in tweet-nacl */
-  let b = GfEmpty;
-  for i in 0..16 {
-    b[i] = x[i];
-  }
+    z[31]=(n[31]&127)|64;
+    z[0]&=248;
+    unpack25519(index_mut_16(&mut x),p);
+    /* TODO: not init in tweet-nacl */
+    let b = GfEmpty;
+    for i in 0..16 {
+        b[i] = x[i];
+    }
 
-  a[0]=1;
-  d[0]=1;
-  for i in (0..255).rev() {
-    let r: u8 = (z[i>>3]>>(i&7))&1;
-    sel25519(&mut a, &mut b, r as isize);
-    sel25519(&mut c, &mut d, r as isize);
-    A(&mut e,a,c);
-    Z(&mut a,a,c);
-    A(&mut c,b,d);
-    Z(&mut b,b,d);
-    S(&mut d,e);
-    S(&mut f,a);
-    M(&mut a,c,a);
-    M(&mut c,b,e);
-    A(&mut e,a,c);
-    Z(&mut a,a,c);
-    S(&mut b,a);
-    Z(&mut c,d,f);
-    M(&mut a,c,_121665);
-    A(&mut a,a,d);
-    M(&mut c,c,a);
-    M(&mut a,d,f);
-    M(&mut d,b, *index_16(&x));
-    S(&mut b,e);
-    sel25519(&mut a, &mut b, r as isize);
-    sel25519(&mut c, &mut d, r as isize);
-  }
-  for i in 0..16 {
-    x[i+16]=a[i];
-    x[i+32]=c[i];
-    x[i+48]=b[i];
-    x[i+64]=d[i];
-  }
-  inv25519(index_mut_16(&mut x[32..]), *index_16(&x[32..]));
-  M(index_mut_16(&mut x[16..]), *index_16(&x[16..]), *index_16(&x[32..]));
-  pack25519(index_mut_16(&mut q), *index_16(&x[16..]));
-  return 0;
+    a[0]=1;
+    d[0]=1;
+    for i in (0..255).rev() {
+        let r: u8 = (z[i>>3]>>(i&7))&1;
+        sel25519(&mut a, &mut b, r as isize);
+        sel25519(&mut c, &mut d, r as isize);
+        A(&mut e,a,c);
+        Z(&mut a,a,c);
+        A(&mut c,b,d);
+        Z(&mut b,b,d);
+        S(&mut d,e);
+        S(&mut f,a);
+        M(&mut a,c,a);
+        M(&mut c,b,e);
+        A(&mut e,a,c);
+        Z(&mut a,a,c);
+        S(&mut b,a);
+        Z(&mut c,d,f);
+        M(&mut a,c,_121665);
+        A(&mut a,a,d);
+        M(&mut c,c,a);
+        M(&mut a,d,f);
+        M(&mut d,b, *index_16(&x));
+        S(&mut b,e);
+        sel25519(&mut a, &mut b, r as isize);
+        sel25519(&mut c, &mut d, r as isize);
+    }
+    for i in 0..16 {
+        x[i+16]=a[i];
+        x[i+32]=c[i];
+        x[i+48]=b[i];
+        x[i+64]=d[i];
+    }
+    inv25519(index_mut_16(&mut x[32..]), *index_16(&x[32..]));
+    M(index_mut_16(&mut x[16..]), *index_16(&x[16..]), *index_16(&x[32..]));
+    pack25519(index_mut_16(&mut q), *index_16(&x[16..]));
+    return 0;
 }
 
 pub fn crypto_scalarmult_base(q: &mut [u8], n: &[u8]) -> isize /* int */
@@ -657,206 +662,206 @@ fn sigma0(x: u64) -> u64 { R(x, 1) ^ R(x, 8) ^ (x >> 7) }
 fn sigma1(x: u64) -> u64 { R(x,19) ^ R(x,61) ^ (x >> 6) }
 
 const K : [u64;80] = [
-  0x428a2f98d728ae22, 0x7137449123ef65cd, 0xb5c0fbcfec4d3b2f, 0xe9b5dba58189dbbc,
-  0x3956c25bf348b538, 0x59f111f1b605d019, 0x923f82a4af194f9b, 0xab1c5ed5da6d8118,
-  0xd807aa98a3030242, 0x12835b0145706fbe, 0x243185be4ee4b28c, 0x550c7dc3d5ffb4e2,
-  0x72be5d74f27b896f, 0x80deb1fe3b1696b1, 0x9bdc06a725c71235, 0xc19bf174cf692694,
-  0xe49b69c19ef14ad2, 0xefbe4786384f25e3, 0x0fc19dc68b8cd5b5, 0x240ca1cc77ac9c65,
-  0x2de92c6f592b0275, 0x4a7484aa6ea6e483, 0x5cb0a9dcbd41fbd4, 0x76f988da831153b5,
-  0x983e5152ee66dfab, 0xa831c66d2db43210, 0xb00327c898fb213f, 0xbf597fc7beef0ee4,
-  0xc6e00bf33da88fc2, 0xd5a79147930aa725, 0x06ca6351e003826f, 0x142929670a0e6e70,
-  0x27b70a8546d22ffc, 0x2e1b21385c26c926, 0x4d2c6dfc5ac42aed, 0x53380d139d95b3df,
-  0x650a73548baf63de, 0x766a0abb3c77b2a8, 0x81c2c92e47edaee6, 0x92722c851482353b,
-  0xa2bfe8a14cf10364, 0xa81a664bbc423001, 0xc24b8b70d0f89791, 0xc76c51a30654be30,
-  0xd192e819d6ef5218, 0xd69906245565a910, 0xf40e35855771202a, 0x106aa07032bbd1b8,
-  0x19a4c116b8d2d0c8, 0x1e376c085141ab53, 0x2748774cdf8eeb99, 0x34b0bcb5e19b48a8,
-  0x391c0cb3c5c95a63, 0x4ed8aa4ae3418acb, 0x5b9cca4f7763e373, 0x682e6ff3d6b2b8a3,
-  0x748f82ee5defb2fc, 0x78a5636f43172f60, 0x84c87814a1f0ab72, 0x8cc702081a6439ec,
-  0x90befffa23631e28, 0xa4506cebde82bde9, 0xbef9a3f7b2c67915, 0xc67178f2e372532b,
-  0xca273eceea26619c, 0xd186b8c721c0c207, 0xeada7dd6cde0eb1e, 0xf57d4f7fee6ed178,
-  0x06f067aa72176fba, 0x0a637dc5a2c898a6, 0x113f9804bef90dae, 0x1b710b35131c471b,
-  0x28db77f523047d84, 0x32caab7b40c72493, 0x3c9ebe0a15c9bebc, 0x431d67c49c100d4c,
-  0x4cc5d4becb3e42b6, 0x597f299cfc657e2a, 0x5fcb6fab3ad6faec, 0x6c44198c4a475817
+    0x428a2f98d728ae22, 0x7137449123ef65cd, 0xb5c0fbcfec4d3b2f, 0xe9b5dba58189dbbc,
+    0x3956c25bf348b538, 0x59f111f1b605d019, 0x923f82a4af194f9b, 0xab1c5ed5da6d8118,
+    0xd807aa98a3030242, 0x12835b0145706fbe, 0x243185be4ee4b28c, 0x550c7dc3d5ffb4e2,
+    0x72be5d74f27b896f, 0x80deb1fe3b1696b1, 0x9bdc06a725c71235, 0xc19bf174cf692694,
+    0xe49b69c19ef14ad2, 0xefbe4786384f25e3, 0x0fc19dc68b8cd5b5, 0x240ca1cc77ac9c65,
+    0x2de92c6f592b0275, 0x4a7484aa6ea6e483, 0x5cb0a9dcbd41fbd4, 0x76f988da831153b5,
+    0x983e5152ee66dfab, 0xa831c66d2db43210, 0xb00327c898fb213f, 0xbf597fc7beef0ee4,
+    0xc6e00bf33da88fc2, 0xd5a79147930aa725, 0x06ca6351e003826f, 0x142929670a0e6e70,
+    0x27b70a8546d22ffc, 0x2e1b21385c26c926, 0x4d2c6dfc5ac42aed, 0x53380d139d95b3df,
+    0x650a73548baf63de, 0x766a0abb3c77b2a8, 0x81c2c92e47edaee6, 0x92722c851482353b,
+    0xa2bfe8a14cf10364, 0xa81a664bbc423001, 0xc24b8b70d0f89791, 0xc76c51a30654be30,
+    0xd192e819d6ef5218, 0xd69906245565a910, 0xf40e35855771202a, 0x106aa07032bbd1b8,
+    0x19a4c116b8d2d0c8, 0x1e376c085141ab53, 0x2748774cdf8eeb99, 0x34b0bcb5e19b48a8,
+    0x391c0cb3c5c95a63, 0x4ed8aa4ae3418acb, 0x5b9cca4f7763e373, 0x682e6ff3d6b2b8a3,
+    0x748f82ee5defb2fc, 0x78a5636f43172f60, 0x84c87814a1f0ab72, 0x8cc702081a6439ec,
+    0x90befffa23631e28, 0xa4506cebde82bde9, 0xbef9a3f7b2c67915, 0xc67178f2e372532b,
+    0xca273eceea26619c, 0xd186b8c721c0c207, 0xeada7dd6cde0eb1e, 0xf57d4f7fee6ed178,
+    0x06f067aa72176fba, 0x0a637dc5a2c898a6, 0x113f9804bef90dae, 0x1b710b35131c471b,
+    0x28db77f523047d84, 0x32caab7b40c72493, 0x3c9ebe0a15c9bebc, 0x431d67c49c100d4c,
+    0x4cc5d4becb3e42b6, 0x597f299cfc657e2a, 0x5fcb6fab3ad6faec, 0x6c44198c4a475817
 ];
 
 fn crypto_hashblocks(x: &mut[u8], mut m: &[u8], n: usize) -> usize
 {
-  /* XXX: all uninit in tweet-nacl */
-  let z = [0u64;8];
-  let b = [0u64;8];
-  let a = [0u64;8];
-  let w = [0u64;16];
+    /* XXX: all uninit in tweet-nacl */
+    let z = [0u64;8];
+    let b = [0u64;8];
+    let a = [0u64;8];
+    let w = [0u64;16];
 
-  for i in 0..8 {
-    let v = dl64(index_8(&x[8 * i..]));
-    z[i] = v;
-    a[i] = v;
-  }
-
-  while n >= 128 {
-    for i in 0..16 {
-      w[i] = dl64(index_8(&m[8 * i..]));
+    for i in 0..8 {
+        let v = dl64(index_8(&x[8 * i..]));
+        z[i] = v;
+        a[i] = v;
     }
 
-    for i in 0..80 {
-      for j in 0..8 {
-        b[j] = a[j];
-      }
-      let t = a[7] + Sigma1(a[4]) + Ch(a[4],a[5],a[6]) + K[i] + w[i%16];
-      b[7] = t + Sigma0(a[0]) + Maj(a[0],a[1],a[2]);
-      b[3] += t;
-      for j in 0..8 {
-        a[(j+1)%8] = b[j];
-      }
-      if i%16 == 15 {
-        for j in 0..16 {
-	  w[j] += w[(j+9)%16] + sigma0(w[(j+1)%16]) + sigma1(w[(j+14)%16]);
+    while n >= 128 {
+        for i in 0..16 {
+            w[i] = dl64(index_8(&m[8 * i..]));
         }
-      }
+
+        for i in 0..80 {
+            for j in 0..8 {
+                b[j] = a[j];
+            }
+            let t = a[7] + Sigma1(a[4]) + Ch(a[4],a[5],a[6]) + K[i] + w[i%16];
+            b[7] = t + Sigma0(a[0]) + Maj(a[0],a[1],a[2]);
+            b[3] += t;
+            for j in 0..8 {
+                a[(j+1)%8] = b[j];
+            }
+            if i%16 == 15 {
+                for j in 0..16 {
+                    w[j] += w[(j+9)%16] + sigma0(w[(j+1)%16]) + sigma1(w[(j+14)%16]);
+                }
+            }
+        }
+
+        for i in 0..8 {
+            a[i] += z[i]; z[i] = a[i];
+        }
+
+        m = &m[128..];
+        n -= 128;
     }
 
     for i in 0..8 {
-      a[i] += z[i]; z[i] = a[i];
+        ts64(&mut x[8*i..],z[i]);
     }
 
-    m = &m[128..];
-    n -= 128;
-  }
-
-  for i in 0..8 {
-    ts64(&mut x[8*i..],z[i]);
-  }
-
-  n
+    n
 }
 
 const iv:[u8; 64] = [
-  0x6a,0x09,0xe6,0x67,0xf3,0xbc,0xc9,0x08,
-  0xbb,0x67,0xae,0x85,0x84,0xca,0xa7,0x3b,
-  0x3c,0x6e,0xf3,0x72,0xfe,0x94,0xf8,0x2b,
-  0xa5,0x4f,0xf5,0x3a,0x5f,0x1d,0x36,0xf1,
-  0x51,0x0e,0x52,0x7f,0xad,0xe6,0x82,0xd1,
-  0x9b,0x05,0x68,0x8c,0x2b,0x3e,0x6c,0x1f,
-  0x1f,0x83,0xd9,0xab,0xfb,0x41,0xbd,0x6b,
-  0x5b,0xe0,0xcd,0x19,0x13,0x7e,0x21,0x79
+    0x6a,0x09,0xe6,0x67,0xf3,0xbc,0xc9,0x08,
+    0xbb,0x67,0xae,0x85,0x84,0xca,0xa7,0x3b,
+    0x3c,0x6e,0xf3,0x72,0xfe,0x94,0xf8,0x2b,
+    0xa5,0x4f,0xf5,0x3a,0x5f,0x1d,0x36,0xf1,
+    0x51,0x0e,0x52,0x7f,0xad,0xe6,0x82,0xd1,
+    0x9b,0x05,0x68,0x8c,0x2b,0x3e,0x6c,0x1f,
+    0x1f,0x83,0xd9,0xab,0xfb,0x41,0xbd,0x6b,
+    0x5b,0xe0,0xcd,0x19,0x13,0x7e,0x21,0x79
 ];
 
 pub fn crypto_hash(out: &mut [u8], mut m: &[u8], n: usize) -> isize /* int */
 {
-  /* XXX: uninit in tweet-nacl */
-  let h = [0u8;64];
-  let x = [0u8;256];
+    /* XXX: uninit in tweet-nacl */
+    let h = [0u8;64];
+    let x = [0u8;256];
 
-  let b = n;
+    let b = n;
 
-  for i in 0..64 {
-    h[i] = iv[i];
-  }
+    for i in 0..64 {
+        h[i] = iv[i];
+    }
 
-  crypto_hashblocks(&mut h,m,n);
-  let nn = n & 127;
-  let s = n - nn;
-  m = &m[s..];
-  n = nn;
+    crypto_hashblocks(&mut h,m,n);
+    let nn = n & 127;
+    let s = n - nn;
+    m = &m[s..];
+    n = nn;
 
-  for i in 0..256 {
-    x[i] = 0;
-  }
-  for i in 0..n {
-    x[i] = m[i];
-  }
-  x[n] = 128;
+    for i in 0..256 {
+        x[i] = 0;
+    }
+    for i in 0..n {
+        x[i] = m[i];
+    }
+    x[n] = 128;
 
-  n = 256-(if n<128 {128} else {0});
-  x[n-9] = (b >> 61) as u8;
-  /* FIXME: check cast to u64 */
-  ts64(&mut x[n-8..], (b<<3) as u64);
-  crypto_hashblocks(&mut h, &x,n);
+    n = 256-(if n<128 {128} else {0});
+    x[n-9] = (b >> 61) as u8;
+    /* FIXME: check cast to u64 */
+    ts64(&mut x[n-8..], (b<<3) as u64);
+    crypto_hashblocks(&mut h, &x,n);
 
-  for i in 0..64 {
-    out[i] = h[i];
-  }
+    for i in 0..64 {
+        out[i] = h[i];
+    }
 
-  return 0;
+    return 0;
 }
 
 fn add(p: &[Gf;4],q: &[Gf;4])
 {
-  let a: Gf;
-  let b: Gf;
-  let c: Gf;
-  let d: Gf;
-  let t: Gf;
-  let e: Gf;
-  let f: Gf;
-  let g: Gf;
-  let h: Gf;
+    let a: Gf;
+    let b: Gf;
+    let c: Gf;
+    let d: Gf;
+    let t: Gf;
+    let e: Gf;
+    let f: Gf;
+    let g: Gf;
+    let h: Gf;
 
-  Z(&mut a, p[1], p[0]);
-  Z(&mut t, q[1], q[0]);
-  M(&mut a, a, t);
-  A(&mut b, p[0], p[1]);
-  A(&mut t, q[0], q[1]);
-  M(&mut b, b, t);
-  M(&mut c, p[3], q[3]);
-  M(&mut c, c, D2);
-  M(&mut d, p[2], q[2]);
-  A(&mut d, d, d);
-  Z(&mut e, b, a);
-  Z(&mut f, d, c);
-  A(&mut g, d, c);
-  A(&mut h, b, a);
+    Z(&mut a, p[1], p[0]);
+    Z(&mut t, q[1], q[0]);
+    M(&mut a, a, t);
+    A(&mut b, p[0], p[1]);
+    A(&mut t, q[0], q[1]);
+    M(&mut b, b, t);
+    M(&mut c, p[3], q[3]);
+    M(&mut c, c, D2);
+    M(&mut d, p[2], q[2]);
+    A(&mut d, d, d);
+    Z(&mut e, b, a);
+    Z(&mut f, d, c);
+    A(&mut g, d, c);
+    A(&mut h, b, a);
 
-  M(&mut p[0], e, f);
-  M(&mut p[1], h, g);
-  M(&mut p[2], g, f);
-  M(&mut p[3], e, h);
+    M(&mut p[0], e, f);
+    M(&mut p[1], h, g);
+    M(&mut p[2], g, f);
+    M(&mut p[3], e, h);
 }
 
 fn cswap(p: &[Gf;4], q: &[Gf;4], b: u8)
 {
-  for i in 0..4 {
-    /* FIXME: check b cast to isize */
-    sel25519(&mut p[i], &mut q[i], b as isize);
-  }
+    for i in 0..4 {
+        /* FIXME: check b cast to isize */
+        sel25519(&mut p[i], &mut q[i], b as isize);
+    }
 }
 
 fn pack(r: &mut [u8], p: &[Gf;4])
 {
-  let tx: Gf;
-  let ty: Gf;
-  let zi: Gf;
+    let tx: Gf;
+    let ty: Gf;
+    let zi: Gf;
 
-  inv25519(&mut zi, p[2]);
-  M(&mut tx, p[0], zi);
-  M(&mut ty, p[1], zi);
-  pack25519(&mut r, ty);
-  r[31] ^= par25519(tx) << 7;
+    inv25519(&mut zi, p[2]);
+    M(&mut tx, p[0], zi);
+    M(&mut ty, p[1], zi);
+    pack25519(&mut r, ty);
+    r[31] ^= par25519(tx) << 7;
 }
 
 fn scalarmult(p: &[Gf;4], q: &[Gf;4], s: &[u8])
 {
-  set25519(&mut p[0],Gf0);
-  set25519(&mut p[1],Gf1);
-  set25519(&mut p[2],Gf1);
-  set25519(&mut p[3],Gf0);
-  for i in (0..256).rev() {
-    let b = (s[i/8]>>(i&7))&1;
-    cswap(p,q,b);
-    add(q,p);
-    add(p,p);
-    cswap(p,q,b);
-  }
+    set25519(&mut p[0],Gf0);
+    set25519(&mut p[1],Gf1);
+    set25519(&mut p[2],Gf1);
+    set25519(&mut p[3],Gf0);
+    for i in (0..256).rev() {
+        let b = (s[i/8]>>(i&7))&1;
+        cswap(p,q,b);
+        add(q,p);
+        add(p,p);
+        cswap(p,q,b);
+    }
 }
 
 fn scalarbase(p: &[Gf;4], s: &[u8])
 {
-  let q: [Gf; 4];
-  set25519(&mut q[0],X);
-  set25519(&mut q[1],Y);
-  set25519(&mut q[2],Gf1);
-  M(&mut q[3],X,Y);
-  scalarmult(&mut p, &mut q,s);
+    let q: [Gf; 4];
+    set25519(&mut q[0],X);
+    set25519(&mut q[1],Y);
+    set25519(&mut q[2],Gf1);
+    M(&mut q[3],X,Y);
+    scalarmult(&mut p, &mut q,s);
 }
 
 pub fn crypto_sign_keypair(pk: &mut [u8], sk: &mut [u8]) -> isize /* int */
@@ -885,51 +890,51 @@ const L: [u64; 32] = [0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c
 
 fn modL(r: &mut [u8], x: &mut [i64;64])
 {
-  /*
-  i64 carry,i,j;
-  */
-  for i in (32..64).rev() {
-    let mut carry = 0;
-    for j in (i - 32)..(i - 12) {
-      /* FIXME: check cast to i64 */
-      x[j] += carry - (16 * x[i] * L[j - (i - 32)] as i64) as i64;
-      carry = (x[j] + 128) >> 8;
-      x[j] -= carry << 8;
+    /*
+       i64 carry,i,j;
+       */
+    for i in (32..64).rev() {
+        let mut carry = 0;
+        for j in (i - 32)..(i - 12) {
+            /* FIXME: check cast to i64 */
+            x[j] += carry - (16 * x[i] * L[j - (i - 32)] as i64) as i64;
+            carry = (x[j] + 128) >> 8;
+            x[j] -= carry << 8;
+        }
+        x[i - 13] += carry;
+        x[i] = 0;
     }
-    x[i - 13] += carry;
-    x[i] = 0;
-  }
 
-  let mut carry = 0;
-  for j in 0..32 {
-    /* FIXME: check cast to i64 */
-    x[j] += carry - (x[31] >> 4) * L[j] as i64;
-    carry = x[j] >> 8;
-    x[j] &= 255;
-  }
+    let mut carry = 0;
+    for j in 0..32 {
+        /* FIXME: check cast to i64 */
+        x[j] += carry - (x[31] >> 4) * L[j] as i64;
+        carry = x[j] >> 8;
+        x[j] &= 255;
+    }
 
-  for j in 0..32 {
-    /* FIXME: check cast to i64 */
-    x[j] -= carry * L[j] as i64;
-  }
-  for i in 0..32 {
-    x[i+1] += x[i] >> 8;
-    r[i] = x[i] as u8;
-  }
+    for j in 0..32 {
+        /* FIXME: check cast to i64 */
+        x[j] -= carry * L[j] as i64;
+    }
+    for i in 0..32 {
+        x[i+1] += x[i] >> 8;
+        r[i] = x[i] as u8;
+    }
 }
 
 fn reduce(r: &mut [u8])
 {
-  /* TODO: uninitialized in tweet-nacl */
-  let x = [0i64;64];
-  for i in 0..64 {
-    /* FIXME: this cast needs to be verified */
-    x[i] = (r[i] as u64) as i64;
-  }
-  for i in 0..64 {
-    r[i] = 0;
-  }
-  modL(&mut r, &mut x);
+    /* TODO: uninitialized in tweet-nacl */
+    let x = [0i64;64];
+    for i in 0..64 {
+        /* FIXME: this cast needs to be verified */
+        x[i] = (r[i] as u64) as i64;
+    }
+    for i in 0..64 {
+        r[i] = 0;
+    }
+    modL(&mut r, &mut x);
 }
 
 fn crypto_sign(sm: &mut [u8], smlen: &mut usize, m: &[u8], n: usize, sk: &[u8]) -> isize /* int */
@@ -982,99 +987,99 @@ fn crypto_sign(sm: &mut [u8], smlen: &mut usize, m: &[u8], n: usize, sk: &[u8]) 
 
 fn unpackneg(r: &[Gf;4], p: &[u8; 32]) -> isize /* int */
 {
-  let t:Gf;
-  let chk:Gf;
-  let num:Gf;
-  let den:Gf;
-  let den2:Gf;
-  let den4:Gf;
-  let den6:Gf;
+    let t:Gf;
+    let chk:Gf;
+    let num:Gf;
+    let den:Gf;
+    let den2:Gf;
+    let den4:Gf;
+    let den6:Gf;
 
-  set25519(&mut r[2],Gf1);
-  unpack25519(&mut r[1],p);
-  S(&mut num,r[1]);
-  M(&mut den,num,D);
-  Z(&mut num,num,r[2]);
-  A(&mut den,r[2],den);
+    set25519(&mut r[2],Gf1);
+    unpack25519(&mut r[1],p);
+    S(&mut num,r[1]);
+    M(&mut den,num,D);
+    Z(&mut num,num,r[2]);
+    A(&mut den,r[2],den);
 
-  S(&mut den2,den);
-  S(&mut den4,den2);
-  M(&mut den6,den4,den2);
-  M(&mut t,den6,num);
-  M(&mut t,t,den);
+    S(&mut den2,den);
+    S(&mut den4,den2);
+    M(&mut den6,den4,den2);
+    M(&mut t,den6,num);
+    M(&mut t,t,den);
 
-  pow2523(&mut t,t);
-  M(&mut t,t,num);
-  M(&mut t,t,den);
-  M(&mut t,t,den);
-  M(&mut r[0],t,den);
+    pow2523(&mut t,t);
+    M(&mut t,t,num);
+    M(&mut t,t,den);
+    M(&mut t,t,den);
+    M(&mut r[0],t,den);
 
-  S(&mut chk,r[0]);
-  M(&mut chk,chk,den);
-  if neq25519(chk, num) {
-    M(&mut r[0],r[0],I);
-  }
+    S(&mut chk,r[0]);
+    M(&mut chk,chk,den);
+    if neq25519(chk, num) {
+        M(&mut r[0],r[0],I);
+    }
 
-  S(&mut chk,r[0]);
-  M(&mut chk,chk,den);
-  if neq25519(chk, num) {
-    return -1;
-  }
+    S(&mut chk,r[0]);
+    M(&mut chk,chk,den);
+    if neq25519(chk, num) {
+        return -1;
+    }
 
-  if par25519(r[0]) == (p[31]>>7) {
-    Z(&mut r[0],Gf0,r[0]);
-  }
+    if par25519(r[0]) == (p[31]>>7) {
+        Z(&mut r[0],Gf0,r[0]);
+    }
 
-  M(&mut r[3],r[0],r[1]);
-  return 0;
+    M(&mut r[3],r[0],r[1]);
+    return 0;
 }
 
 pub fn crypto_sign_open(m: &mut [u8], mlen: &mut usize, sm : &[u8], n : usize, pk: &[u8;32]) -> isize /* int */
 {
-  let t = [0u8;32];
-  let h = [0u8;64];
+    let t = [0u8;32];
+    let h = [0u8;64];
 
-  let p: [Gf;4];
-  let q: [Gf;4];
+    let p: [Gf;4];
+    let q: [Gf;4];
 
-  *mlen = -1;
-  if n < 64 {
-    return -1;
-  }
-
-  /* TODO: check if upackneg should return a bool */
-  if unpackneg(&q,pk) != 0 {
-    return -1;
-  }
-
-  for i in 0..n {
-    m[i] = sm[i];
-  }
-  for i in 0..32 {
-    m[i+32] = pk[i];
-  }
-  crypto_hash(&mut h,m,n);
-  reduce(&mut h);
-  scalarmult(&mut p, &q, &h);
-
-  scalarbase(&mut q, &sm[32..]);
-  add(&mut p, &q);
-  pack(&mut t, &p);
-
-  n -= 64;
-  /* TODO: check if crypto_verify_32 should return a bool */
-  if crypto_verify_32(index_32(sm), &t) != 0 {
-    for i in 0..n {
-      m[i] = 0;
+    *mlen = -1;
+    if n < 64 {
+        return -1;
     }
-    return -1;
-  }
 
-  for i in 0..n {
-    m[i] = sm[i + 64];
-  }
-  *mlen = n;
-  return 0;
+    /* TODO: check if upackneg should return a bool */
+    if unpackneg(&q,pk) != 0 {
+        return -1;
+    }
+
+    for i in 0..n {
+        m[i] = sm[i];
+    }
+    for i in 0..32 {
+        m[i+32] = pk[i];
+    }
+    crypto_hash(&mut h,m,n);
+    reduce(&mut h);
+    scalarmult(&mut p, &q, &h);
+
+    scalarbase(&mut q, &sm[32..]);
+    add(&mut p, &q);
+    pack(&mut t, &p);
+
+    n -= 64;
+    /* TODO: check if crypto_verify_32 should return a bool */
+    if crypto_verify_32(index_32(sm), &t) != 0 {
+        for i in 0..n {
+            m[i] = 0;
+        }
+        return -1;
+    }
+
+    for i in 0..n {
+        m[i] = sm[i + 64];
+    }
+    *mlen = n;
+    return 0;
 }
 
 
