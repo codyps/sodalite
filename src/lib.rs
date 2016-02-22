@@ -172,17 +172,15 @@ pub fn crypto_core_hsalsa20(out: &mut [u8], inx: &[u8], k: &[u8], c: &[u8]) -> i
 
 static sigma : &'static [u8;16] = b"expand 32-byte k";
 
-pub fn crypto_stream_salsa20_xor(mut c: &mut [u8], mut m: Option<&[u8]>, b: usize, n: &[u8], k: &[u8]) -> isize /* int */
+pub fn crypto_stream_salsa20_xor(mut c: &mut [u8], mut m: Option<&[u8]>, mut b: usize, n: &[u8], k: &[u8]) -> isize /* int */
 {
     let mut z = [0u8;16];
+
+    /* XXX: not zeroed in tweet-nacl, provided by call to crypto_core_salsa20 */
     let mut x = [0u8;64];
 
     if b == 0 {
         return 0;
-    }
-
-    for i in 0..16 {
-        z[i] = 0;
     }
 
     for i in 0..8 {
@@ -197,14 +195,14 @@ pub fn crypto_stream_salsa20_xor(mut c: &mut [u8], mut m: Option<&[u8]>, b: usiz
               None    => 0
             } ^ x[i];
         }
-        let u = 1u32;
+        let mut u = 1u32;
         for i in 8..16 {
             u += z[i] as u32;
             z[i] = u as u8;
             u >>= 8;
         }
         b -= 64;
-        c = &mut c[64..];
+        c = &mut {c}[64..];
         if m.is_some() {
           m = Some(&m.unwrap()[64..])
         }
@@ -230,21 +228,21 @@ pub fn crypto_stream_salsa20(c: &mut [u8], d: usize, n : &[u8], k: &[u8]) -> isi
 
 pub fn crypto_stream(c: &mut [u8], d: usize, n: &[u8], k: &[u8])
 {
-    let s = [0u8; 32];
+    let mut s = [0u8; 32];
     crypto_core_hsalsa20(&mut s,n,k,sigma);
     crypto_stream_salsa20(c,d,&n[16..],&s);
 }
 
 pub fn crypto_stream_xor(c: &mut [u8], m: &[u8], d: usize, n: &[u8], k: &[u8]) -> isize /* int */
 {
-    let s = [0u8; 32];
+    let mut s = [0u8; 32];
     crypto_core_hsalsa20(&mut s,n,k,sigma);
     crypto_stream_salsa20_xor(c,Some(m),d,&n[16..], &s)
 }
 
 fn add1305(h: &mut [u32; 16], c: &[u32; 16])
 {
-    let u = 0u32;
+    let mut u = 0u32;
     for j in 0..17 {
         u += h[j] + c[j];
         h[j] = u & 255;
@@ -256,16 +254,19 @@ const minusp : [u32;17] = [
     5u32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 252
 ];
 
-pub fn crypto_onetimeauth(out: &mut [u8], mut m: &[u8], n: usize, k: &[u8]) -> isize /* int */
+/*
+ * m: &[u8:n]
+ */
+pub fn crypto_onetimeauth(out: &mut [u8;16], mut m: &[u8], mut n: usize, k: &[u8;32]) -> isize /* int */
 {
     /* FIXME: not zeroed in tweet-nacl */
-    let x = [0u32;17];
-    let r = [0u32;17];
-    let h = [0u32;17];
+    let mut x = [0u32;17];
+    let mut r = [0u32;17];
+    let mut h = [0u32;17];
     /* FIXME: not zeroed in tweet-nacl */
-    let c = [0u32;17];
+    let mut c = [0u32;17];
     /* FIXME: not zeroed in tweet-nacl */
-    let g = [0u32;17];
+    let mut g = [0u32;17];
 
     for j in 0..16 {
         r[j] = k[j] as u32;
@@ -302,7 +303,7 @@ pub fn crypto_onetimeauth(out: &mut [u8], mut m: &[u8], n: usize, k: &[u8]) -> i
         for i in 0..17 {
             h[i] = x[i];
         }
-        let u = 0u32;
+        let mut u = 0u32;
         for j in 0..16 {
             u += h[j];
             h[j] = u & 255;
@@ -340,9 +341,12 @@ pub fn crypto_onetimeauth(out: &mut [u8], mut m: &[u8], n: usize, k: &[u8]) -> i
     return 0;
 }
 
-pub fn crypto_onetimeauth_verify(h: &[u8;16], m: &[u8], n: usize, k: &[u8]) -> isize /* int */
+/*
+ * m: &[u8:n]
+ */
+pub fn crypto_onetimeauth_verify(h: &[u8;16], m: &[u8], n: usize, k: &[u8;32]) -> isize /* int */
 {
-    let x = [0u8; 16];
+    let mut x = [0u8; 16];
     crypto_onetimeauth(&mut x,m,n,k);
     crypto_verify_16(h,&x) as isize /* XXX: fixme, sizing */
 }
@@ -354,19 +358,26 @@ pub fn crypto_secretbox(c: &mut [u8], m: &[u8], d: usize, n: &[u8], k: &[u8]) ->
     }
 
     crypto_stream_xor(c,m,d,n,k);
-    crypto_onetimeauth(&mut c[16..], &c[32..], d - 32, c);
+    {
+        let (c_out, c_m) = c.split_at_mut(32);
+        crypto_onetimeauth(index_mut_16(&mut c_out[16..]), &c_m, d - 32, index_32(c));
+    }
+
     for i in 0..16 {
         c[i] = 0;
     }
     return 0;
 }
 
+/*
+ * c: &[u8:d]
+ */
 pub fn crypto_secretbox_open(m: &mut [u8], c: &[u8], d: usize, n: &[u8], k: &[u8]) -> isize /* int */
 {
     if d < 32 {
         return -1;
     }
-    let x = [0u8; 32];
+    let mut x = [0u8; 32];
     crypto_stream(&mut x,32,n,k);
     if crypto_onetimeauth_verify(index_mut_16(&mut c[16..]), &c[32..], d - 32, &x) != 0 {
         return -1;
@@ -408,8 +419,8 @@ fn sel25519(p: &mut Gf,q: &mut Gf, b: isize /* int */)
 
 fn pack25519(o: &mut [u8], n: Gf)
 {
-  let m : Gf;
-  let t : Gf;
+    let mut m : Gf;
+    let mut t : Gf;
     for i in 0..16 {
         t[i] = n[i];
     }
