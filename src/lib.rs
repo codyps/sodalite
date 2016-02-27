@@ -63,23 +63,25 @@ fn ts64(x: &mut [u8], mut u: u64)
     }
 }
 
-fn vn(x: &[u8], y: &[u8]) -> u8
+fn vn(x: &[u8], y: &[u8]) -> isize
 {
     assert_eq!(x.len(), y.len());
-    let mut d = 0;
+    let mut d = 0u32;
     for i in 0..x.len() {
-        d |= x[i] ^ y[i];
+        d |= (x[i] ^ y[i]) as u32;
     }
 
-    (1 & ((d - 1) >> 8)) - 1
+    /* FIXME: check this cast. appears this function might be attempting to sign extend. This also
+     * affects a bunch of other functions that right now have isize as a return type */
+    ((1 & ((d - 1) >> 8)) - 1) as isize
 }
 
-pub fn crypto_verify_16(x: &[u8;16], y: &[u8;16]) -> u8
+pub fn crypto_verify_16(x: &[u8;16], y: &[u8;16]) -> isize
 {
     vn(&x[..], &y[..])
 }
 
-pub fn crypto_verify_32(x: &[u8;32], y: &[u8;32]) -> u8
+pub fn crypto_verify_32(x: &[u8;32], y: &[u8;32]) -> isize
 {
     vn(&x[..], &y[..])
 }
@@ -348,7 +350,7 @@ pub fn crypto_onetimeauth_verify(h: &[u8;16], m: &[u8], n: usize, k: &[u8;32]) -
 {
     let mut x = [0u8; 16];
     crypto_onetimeauth(&mut x,m,n,k);
-    crypto_verify_16(h,&x) as isize /* XXX: fixme, sizing */
+    crypto_verify_16(h,&x)
 }
 
 pub fn crypto_secretbox(c: &mut [u8], m: &[u8], d: usize, n: &[u8], k: &[u8]) -> isize /* int */
@@ -358,10 +360,13 @@ pub fn crypto_secretbox(c: &mut [u8], m: &[u8], d: usize, n: &[u8], k: &[u8]) ->
     }
 
     crypto_stream_xor(c,m,d,n,k);
+    let mut o = [0u8;16];
     {
-        let (c_out, c_m) = c.split_at_mut(32);
-        crypto_onetimeauth(index_mut_16(&mut c_out[16..]), &c_m, d - 32, index_32(c));
+        /* XXX: we avoid aliasing to make rust happy at the cost of an extra copy via @o */
+        let (c_k, c_m) = c.split_at(32);
+        crypto_onetimeauth(&mut o, c_m, d - 32, index_32(c_k));
     }
+    *index_mut_16(&mut c[16..32]) = o;
 
     for i in 0..16 {
         c[i] = 0;
@@ -475,6 +480,7 @@ fn unpack25519(o: &mut Gf, n: &[u8])
     o[15]&=0x7fff;
 }
 
+/* "add" */
 fn A(o: &mut Gf, a: Gf, b: Gf)
 {
     for i in 0..16 {
@@ -482,6 +488,7 @@ fn A(o: &mut Gf, a: Gf, b: Gf)
     }
 }
 
+/* "subtract" */
 fn Z(o: &mut Gf, a: Gf, b: Gf)
 {
     for i in 0..16 {
@@ -489,6 +496,7 @@ fn Z(o: &mut Gf, a: Gf, b: Gf)
     }
 }
 
+/* "multiply" */
 fn M(o: &mut Gf, a: Gf, b: Gf)
 {
     let mut t = [0i64;31];
@@ -507,6 +515,7 @@ fn M(o: &mut Gf, a: Gf, b: Gf)
     car25519(o);
 }
 
+/* "square" */
 fn S(o: &mut Gf, a: Gf)
 {
     M(o,a,a);
@@ -519,9 +528,13 @@ fn inv25519(o: &mut Gf, i: Gf)
         c[a]=i[a];
     }
     for a in (0..254).rev() {
-        S(&mut c,c);
+        /* XXX: avoid aliasing with a copy */
+        let mut tmp = GfEmpty;
+        S(&mut tmp,c);
         if a!=2 && a!=4 {
-            M(&mut c,c,i);
+            M(&mut c,tmp,i);
+        } else {
+            c = tmp;
         }
     }
     for a in 0..16 {
@@ -536,9 +549,13 @@ fn pow2523(o: &mut Gf, i: Gf)
         c[a]=i[a];
     }
     for a in (0..251).rev() {
-        S(&mut c,c);
-        if a!=1 {
-            M(&mut c,c,i);
+        /* XXX: avoid aliasing with a copy */
+        let mut tmp = GfEmpty;
+        S(&mut tmp,c);
+        if a != 1 {
+            M(&mut c,tmp,i);
+        } else {
+            c = tmp;
         }
     }
     for a in 0..16 {
@@ -546,7 +563,7 @@ fn pow2523(o: &mut Gf, i: Gf)
     }
 }
 
-pub fn crypto_scalarmult(q: &mut [u8], n: &[u8], p: &[u8]) -> isize /* int */
+pub fn crypto_scalarmult(q: &mut [u8;16], n: &[u8], p: &[u8]) -> isize /* int */
 {
     let mut z = [0u8;32];
     /* TODO: not init in tweet-nacl */
@@ -575,21 +592,30 @@ pub fn crypto_scalarmult(q: &mut [u8], n: &[u8], p: &[u8]) -> isize /* int */
         let r: u8 = (z[i>>3]>>(i&7))&1;
         sel25519(&mut a, &mut b, r as isize);
         sel25519(&mut c, &mut d, r as isize);
+
+        /* XXX: avoid aliasing with an extra copy */
+        let mut tmp = GfEmpty;
         A(&mut e,a,c);
-        Z(&mut a,a,c);
+        Z(&mut tmp,a,c);
+        a = tmp;
         A(&mut c,b,d);
-        Z(&mut b,b,d);
+        Z(&mut tmp,b,d);
+        b = tmp;
         S(&mut d,e);
         S(&mut f,a);
-        M(&mut a,c,a);
+        M(&mut tmp,c,a);
+        a = tmp;
         M(&mut c,b,e);
         A(&mut e,a,c);
-        Z(&mut a,a,c);
+        Z(&mut tmp,a,c);
+        a = tmp;
         S(&mut b,a);
         Z(&mut c,d,f);
         M(&mut a,c,_121665);
-        A(&mut a,a,d);
-        M(&mut c,c,a);
+        A(&mut tmp,a,d);
+        a = tmp;
+        M(&mut tmp,c,a);
+        c = tmp;
         M(&mut a,d,f);
         M(&mut d,b, *index_16(&x));
         S(&mut b,e);
@@ -602,18 +628,24 @@ pub fn crypto_scalarmult(q: &mut [u8], n: &[u8], p: &[u8]) -> isize /* int */
         x[i+48]=b[i];
         x[i+64]=d[i];
     }
-    inv25519(index_mut_16(&mut x[32..]), *index_16(&x[32..]));
-    M(index_mut_16(&mut x[16..]), *index_16(&x[16..]), *index_16(&x[32..]));
-    pack25519(index_mut_16(&mut q), *index_16(&x[16..]));
+    /* XXX: avoid aliasing with an extra copy */
+    let mut tmp = [0i64;16];
+    inv25519(&mut tmp, *index_16(&x[32..]));
+    *index_mut_16(&mut x[32..]) = tmp;
+
+    /* XXX: avoid aliasing with an extra copy */
+    M(&mut tmp, *index_16(&x[16..]), *index_16(&x[32..]));
+    *index_mut_16(&mut x[16..]) = tmp;
+    pack25519(q, *index_16(&x[16..]));
     return 0;
 }
 
-pub fn crypto_scalarmult_base(q: &mut [u8], n: &[u8]) -> isize /* int */
+pub fn crypto_scalarmult_base(q: &mut [u8;16], n: &[u8]) -> isize /* int */
 {
     crypto_scalarmult(q, n, &_9)
 }
 
-pub fn crypto_box_keypair(y: &mut[u8], x: &mut[u8]) -> isize /* int */
+pub fn crypto_box_keypair(y: &mut[u8;16], x: &mut[u8]) -> isize /* int */
 {
     randombytes(&mut x[..32]);
     crypto_scalarmult_base(y,x)
@@ -622,8 +654,8 @@ pub fn crypto_box_keypair(y: &mut[u8], x: &mut[u8]) -> isize /* int */
 pub fn crypto_box_beforenm(k: &mut[u8], y: &[u8], x: &[u8]) -> isize /* int */
 {
     /* TODO: uninit in tweet-nacl */
-    let s = [0u8; 32];
-    crypto_scalarmult(&mut s,x,y);
+    let mut s = [0u8; 32];
+    crypto_scalarmult(index_mut_16(&mut s),x,y);
     crypto_core_hsalsa20(k, &_0, &s, sigma)
 }
 
@@ -640,7 +672,7 @@ pub fn crypto_box_open_afternm(m: &mut[u8], c: &[u8], d: usize, n: &[u8], k: &[u
 pub fn crypto_box(c: &mut [u8], m: &[u8], d: usize, n: &[u8], y: &[u8], x: &[u8]) -> isize /* int */
 {
     /* FIXME: uninit in tweet-nacl */
-    let k = [0u8; 32];
+    let mut k = [0u8; 32];
     crypto_box_beforenm(&mut k,y,x);
     crypto_box_afternm(c,m,d,n, &k)
 }
@@ -648,7 +680,7 @@ pub fn crypto_box(c: &mut [u8], m: &[u8], d: usize, n: &[u8], y: &[u8], x: &[u8]
 pub fn crypto_box_open(m : &mut [u8], c: &[u8] ,d: usize, n: &[u8], y: &[u8], x: &[u8]) -> isize /* int */
 {
     /* FIXME: k was not zeroed */
-    let k = [0u8; 32];
+    let mut k = [0u8; 32];
     crypto_box_beforenm(&mut k,y,x);
     crypto_box_open_afternm(m,c,d,n, &k)
 }
@@ -684,13 +716,13 @@ const K : [u64;80] = [
     0x4cc5d4becb3e42b6, 0x597f299cfc657e2a, 0x5fcb6fab3ad6faec, 0x6c44198c4a475817
 ];
 
-fn crypto_hashblocks(x: &mut[u8], mut m: &[u8], n: usize) -> usize
+fn crypto_hashblocks(x: &mut[u8], mut m: &[u8], mut n: usize) -> usize
 {
     /* XXX: all uninit in tweet-nacl */
-    let z = [0u64;8];
-    let b = [0u64;8];
-    let a = [0u64;8];
-    let w = [0u64;16];
+    let mut z = [0u64;8];
+    let mut b = [0u64;8];
+    let mut a = [0u64;8];
+    let mut w = [0u64;16];
 
     for i in 0..8 {
         let v = dl64(index_8(&x[8 * i..]));
@@ -746,11 +778,11 @@ const iv:[u8; 64] = [
     0x5b,0xe0,0xcd,0x19,0x13,0x7e,0x21,0x79
 ];
 
-pub fn crypto_hash(out: &mut [u8], mut m: &[u8], n: usize) -> isize /* int */
+pub fn crypto_hash(out: &mut [u8], mut m: &[u8], mut n: usize) -> isize /* int */
 {
     /* XXX: uninit in tweet-nacl */
-    let h = [0u8;64];
-    let x = [0u8;256];
+    let mut h = [0u8;64];
+    let mut x = [0u8;256];
 
     let b = n;
 
@@ -785,28 +817,34 @@ pub fn crypto_hash(out: &mut [u8], mut m: &[u8], n: usize) -> isize /* int */
     return 0;
 }
 
-fn add(p: &[Gf;4],q: &[Gf;4])
+fn add(p: &mut [Gf;4],q: &[Gf;4])
 {
-    let a: Gf;
-    let b: Gf;
-    let c: Gf;
-    let d: Gf;
-    let t: Gf;
-    let e: Gf;
-    let f: Gf;
-    let g: Gf;
-    let h: Gf;
+    let mut a = GfEmpty;
+    let mut b = a;
+    let mut c = a;
+    let mut d = a;
+    let mut t = a;
+    let mut e = a;
+    let mut f = a;
+    let mut g = a;
+    let mut h = a;
 
+    /* XXX: avoid aliasing with extra copy */
+    let mut tmp = GfEmpty;
     Z(&mut a, p[1], p[0]);
     Z(&mut t, q[1], q[0]);
-    M(&mut a, a, t);
+    M(&mut tmp, a, t);
+    a = tmp;
     A(&mut b, p[0], p[1]);
     A(&mut t, q[0], q[1]);
-    M(&mut b, b, t);
+    M(&mut tmp, b, t);
+    b = tmp;
     M(&mut c, p[3], q[3]);
-    M(&mut c, c, D2);
+    M(&mut tmp, c, D2);
+    c = tmp;
     M(&mut d, p[2], q[2]);
-    A(&mut d, d, d);
+    A(&mut tmp, d, d);
+    d = tmp;
     Z(&mut e, b, a);
     Z(&mut f, d, c);
     A(&mut g, d, c);
@@ -818,7 +856,7 @@ fn add(p: &[Gf;4],q: &[Gf;4])
     M(&mut p[3], e, h);
 }
 
-fn cswap(p: &[Gf;4], q: &[Gf;4], b: u8)
+fn cswap(p: &mut [Gf;4], q: &mut [Gf;4], b: u8)
 {
     for i in 0..4 {
         /* FIXME: check b cast to isize */
@@ -828,18 +866,18 @@ fn cswap(p: &[Gf;4], q: &[Gf;4], b: u8)
 
 fn pack(r: &mut [u8], p: &[Gf;4])
 {
-    let tx: Gf;
-    let ty: Gf;
-    let zi: Gf;
+    let mut tx = GfEmpty;
+    let mut ty = GfEmpty;
+    let mut zi = GfEmpty;
 
     inv25519(&mut zi, p[2]);
     M(&mut tx, p[0], zi);
     M(&mut ty, p[1], zi);
-    pack25519(&mut r, ty);
+    pack25519(r, ty);
     r[31] ^= par25519(tx) << 7;
 }
 
-fn scalarmult(p: &[Gf;4], q: &[Gf;4], s: &[u8])
+fn scalarmult(p: &mut [Gf;4], q: &mut [Gf;4], s: &[u8])
 {
     set25519(&mut p[0],Gf0);
     set25519(&mut p[1],Gf1);
@@ -847,28 +885,32 @@ fn scalarmult(p: &[Gf;4], q: &[Gf;4], s: &[u8])
     set25519(&mut p[3],Gf0);
     for i in (0..256).rev() {
         let b = (s[i/8]>>(i&7))&1;
+        /* XXX: avoid aliasing with extra copy */
+        let mut tmp = [GfEmpty;4];
         cswap(p,q,b);
         add(q,p);
-        add(p,p);
+        add(&mut tmp,p);
+        *p = tmp;
         cswap(p,q,b);
     }
 }
 
-fn scalarbase(p: &[Gf;4], s: &[u8])
+fn scalarbase(p: &mut [Gf;4], s: &[u8])
 {
-    let q: [Gf; 4];
+    /* XXX: uninit */
+    let mut q = [GfEmpty; 4];
     set25519(&mut q[0],X);
     set25519(&mut q[1],Y);
     set25519(&mut q[2],Gf1);
     M(&mut q[3],X,Y);
-    scalarmult(&mut p, &mut q,s);
+    scalarmult(p, &mut q,s);
 }
 
 pub fn crypto_sign_keypair(pk: &mut [u8], sk: &mut [u8]) -> isize /* int */
 {
     /* FIXME: uninit in tweet-nacl */
     let mut d = [0u8; 64];
-    let p :[Gf;4];
+    let mut p = [GfEmpty;4];
 
     randombytes(&mut sk[..32]);
     crypto_hash(&mut d, sk, 32);
@@ -876,7 +918,7 @@ pub fn crypto_sign_keypair(pk: &mut [u8], sk: &mut [u8]) -> isize /* int */
     d[31] &= 127;
     d[31] |= 64;
 
-    scalarbase(&p,&d);
+    scalarbase(&mut p,&d);
     pack(pk,&p);
 
     for i in 0..32 {
@@ -926,7 +968,7 @@ fn modL(r: &mut [u8], x: &mut [i64;64])
 fn reduce(r: &mut [u8])
 {
     /* TODO: uninitialized in tweet-nacl */
-    let x = [0i64;64];
+    let mut x = [0i64;64];
     for i in 0..64 {
         /* FIXME: this cast needs to be verified */
         x[i] = (r[i] as u64) as i64;
@@ -934,7 +976,7 @@ fn reduce(r: &mut [u8])
     for i in 0..64 {
         r[i] = 0;
     }
-    modL(&mut r, &mut x);
+    modL(r, &mut x);
 }
 
 fn crypto_sign(sm: &mut [u8], smlen: &mut usize, m: &[u8], n: usize, sk: &[u8]) -> isize /* int */
@@ -968,7 +1010,7 @@ fn crypto_sign(sm: &mut [u8], smlen: &mut usize, m: &[u8], n: usize, sk: &[u8]) 
     crypto_hash(&mut h,sm,n + 64);
     reduce(&mut h);
 
-    let x = [0i64; 64];
+    let mut x = [0i64; 64];
     for i in 0..32 {
       /* FIXME: check this cast */
       x[i] = r[i] as u64 as i64;
@@ -1034,13 +1076,13 @@ fn unpackneg(r: &[Gf;4], p: &[u8; 32]) -> isize /* int */
     return 0;
 }
 
-pub fn crypto_sign_open(m: &mut [u8], mlen: &mut usize, sm : &[u8], n : usize, pk: &[u8;32]) -> isize /* int */
+pub fn crypto_sign_open(m: &mut [u8], mlen: &mut usize, sm : &[u8], mut n : usize, pk: &[u8;32]) -> isize /* int */
 {
-    let t = [0u8;32];
-    let h = [0u8;64];
+    let mut t = [0u8;32];
+    let mut h = [0u8;64];
 
-    let p: [Gf;4];
-    let q: [Gf;4];
+    let mut p: [Gf;4];
+    let mut q: [Gf;4];
 
     *mlen = -1;
     if n < 64 {
@@ -1060,7 +1102,7 @@ pub fn crypto_sign_open(m: &mut [u8], mlen: &mut usize, sm : &[u8], n : usize, p
     }
     crypto_hash(&mut h,m,n);
     reduce(&mut h);
-    scalarmult(&mut p, &q, &h);
+    scalarmult(&mut p, &mut q, &h);
 
     scalarbase(&mut q, &sm[32..]);
     add(&mut p, &q);
