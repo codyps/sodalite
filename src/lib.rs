@@ -172,7 +172,7 @@ pub fn crypto_core_hsalsa20(out: &mut [u8], inx: &[u8], k: &[u8], c: &[u8]) -> i
     0
 }
 
-static sigma : &'static [u8;16] = b"expand 32-byte k";
+static SIGMA : &'static [u8;16] = b"expand 32-byte k";
 
 pub fn crypto_stream_salsa20_xor(mut c: &mut [u8], mut m: Option<&[u8]>, mut b: usize, n: &[u8], k: &[u8]) -> isize /* int */
 {
@@ -190,7 +190,7 @@ pub fn crypto_stream_salsa20_xor(mut c: &mut [u8], mut m: Option<&[u8]>, mut b: 
     }
 
     while b >= 64 {
-        crypto_core_salsa20(&mut x, &mut z,k,sigma);
+        crypto_core_salsa20(&mut x, &mut z,k,SIGMA);
         for i in 0..64 {
             c[i] = match m {
               Some(m) => m[i],
@@ -211,7 +211,7 @@ pub fn crypto_stream_salsa20_xor(mut c: &mut [u8], mut m: Option<&[u8]>, mut b: 
     }
 
     if b != 0 {
-        crypto_core_salsa20(&mut x, &mut z,k,sigma);
+        crypto_core_salsa20(&mut x, &mut z,k,SIGMA);
         for i in 0..b {
           c[i] = match m {
             Some(m) => m[i],
@@ -231,14 +231,14 @@ pub fn crypto_stream_salsa20(c: &mut [u8], d: usize, n : &[u8], k: &[u8]) -> isi
 pub fn crypto_stream(c: &mut [u8], d: usize, n: &[u8], k: &[u8])
 {
     let mut s = [0u8; 32];
-    crypto_core_hsalsa20(&mut s,n,k,sigma);
+    crypto_core_hsalsa20(&mut s,n,k,SIGMA);
     crypto_stream_salsa20(c,d,&n[16..],&s);
 }
 
 pub fn crypto_stream_xor(c: &mut [u8], m: &[u8], d: usize, n: &[u8], k: &[u8]) -> isize /* int */
 {
     let mut s = [0u8; 32];
-    crypto_core_hsalsa20(&mut s,n,k,sigma);
+    crypto_core_hsalsa20(&mut s,n,k,SIGMA);
     crypto_stream_salsa20_xor(c,Some(m),d,&n[16..], &s)
 }
 
@@ -656,7 +656,7 @@ pub fn crypto_box_beforenm(k: &mut[u8], y: &[u8], x: &[u8]) -> isize /* int */
     /* TODO: uninit in tweet-nacl */
     let mut s = [0u8; 32];
     crypto_scalarmult(index_mut_16(&mut s),x,y);
-    crypto_core_hsalsa20(k, &_0, &s, sigma)
+    crypto_core_hsalsa20(k, &_0, &s, SIGMA)
 }
 
 pub fn crypto_box_afternm(c: &mut[u8], m: &[u8], d: usize, n: &[u8], k: &[u8]) -> isize /* int */
@@ -1027,52 +1027,67 @@ fn crypto_sign(sm: &mut [u8], smlen: &mut usize, m: &[u8], n: usize, sk: &[u8]) 
     0
 }
 
-fn unpackneg(r: &[Gf;4], p: &[u8; 32]) -> isize /* int */
+fn unpackneg(r: &mut [Gf;4], p: &[u8; 32]) -> isize /* int */
 {
-    let t:Gf;
-    let chk:Gf;
-    let num:Gf;
-    let den:Gf;
-    let den2:Gf;
-    let den4:Gf;
-    let den6:Gf;
+    let mut t = GfEmpty;
+    let mut chk = t;
+    let mut num = t;
+    let mut den = t;
+    let mut den2 = t;
+    let mut den4 = t;
+    let mut den6 = t;
+
+    /* XXX: add extra copy to avoid aliasing */
+    let mut tmp = GfEmpty;
 
     set25519(&mut r[2],Gf1);
     unpack25519(&mut r[1],p);
     S(&mut num,r[1]);
     M(&mut den,num,D);
-    Z(&mut num,num,r[2]);
-    A(&mut den,r[2],den);
+    Z(&mut tmp,num,r[2]);
+    num = tmp;
+    A(&mut tmp,r[2],den);
+    den = tmp;
 
     S(&mut den2,den);
     S(&mut den4,den2);
     M(&mut den6,den4,den2);
     M(&mut t,den6,num);
-    M(&mut t,t,den);
+    M(&mut tmp,t,den);
+    t = tmp;
 
-    pow2523(&mut t,t);
-    M(&mut t,t,num);
-    M(&mut t,t,den);
-    M(&mut t,t,den);
+    pow2523(&mut tmp,t);
+    t = tmp;
+    M(&mut tmp,t,num);
+    t = tmp;
+    M(&mut tmp,t,den);
+    t = tmp;
+    M(&mut tmp,t,den);
+    t = tmp;
     M(&mut r[0],t,den);
 
     S(&mut chk,r[0]);
-    M(&mut chk,chk,den);
+    M(&mut tmp,chk,den);
+    chk = tmp;
     if neq25519(chk, num) {
-        M(&mut r[0],r[0],I);
+        M(&mut tmp,r[0],I);
+        r[0] = tmp;
     }
 
     S(&mut chk,r[0]);
-    M(&mut chk,chk,den);
+    M(&mut tmp,chk,den);
+    chk = tmp;
     if neq25519(chk, num) {
         return -1;
     }
 
     if par25519(r[0]) == (p[31]>>7) {
-        Z(&mut r[0],Gf0,r[0]);
+        Z(&mut tmp,Gf0,r[0]);
+        r[0] = tmp;
     }
 
-    M(&mut r[3],r[0],r[1]);
+    let (init, mut rest) = r.split_at_mut(3);
+    M(&mut rest[0],init[0],init[1]);
     return 0;
 }
 
@@ -1081,8 +1096,8 @@ pub fn crypto_sign_open(m: &mut [u8], mlen: &mut usize, sm : &[u8], mut n : usiz
     let mut t = [0u8;32];
     let mut h = [0u8;64];
 
-    let mut p: [Gf;4];
-    let mut q: [Gf;4];
+    let mut p = [GfEmpty;4];
+    let mut q = p;
 
     *mlen = -1;
     if n < 64 {
@@ -1090,7 +1105,7 @@ pub fn crypto_sign_open(m: &mut [u8], mlen: &mut usize, sm : &[u8], mut n : usiz
     }
 
     /* TODO: check if upackneg should return a bool */
-    if unpackneg(&q,pk) != 0 {
+    if unpackneg(&mut q,pk) != 0 {
         return -1;
     }
 
