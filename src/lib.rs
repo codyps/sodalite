@@ -253,7 +253,7 @@ fn add1305(h: &mut [u32; 16], c: &[u32; 16])
     }
 }
 
-const minusp : [u32;17] = [
+const MINUSP : [u32;17] = [
     5u32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 252
 ];
 
@@ -327,8 +327,9 @@ pub fn crypto_onetimeauth(out: &mut [u8;16], mut m: &[u8], mut n: usize, k: &[u8
     for j in 0..17 {
         g[j] = h[j];
     }
-    add1305(index_mut_16(&mut h), index_16(&minusp));
-    let s : u32 = -(h[16] >> 7);
+    add1305(index_mut_16(&mut h), index_16(&MINUSP));
+    /* XXX: check signed cast */
+    let s : u32 = (-((h[16] >> 7) as i32)) as u32;
     for j in 0..17 {
         h[j] ^= s & (g[j] ^ h[j]);
     }
@@ -435,7 +436,7 @@ fn pack25519(o: &mut [u8], n: Gf)
     car25519(&mut t);
     car25519(&mut t);
     car25519(&mut t);
-    for j in 0..2 {
+    for _ in 0..2 {
         m[0]=t[0]-0xffed;
         for i in 1..15 {
             m[i]=t[i]-0xffff-((m[i-1]>>16)&1);
@@ -931,7 +932,7 @@ pub fn crypto_sign_keypair(pk: &mut [u8], sk: &mut [u8]) -> isize /* int */
 
 const L: [u64; 32] = [0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c, 0xf7, 0xa2, 0xde, 0xf9, 0xde, 0x14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x10];
 
-fn modL(r: &mut [u8], x: &mut [i64;64])
+fn mod_l(r: &mut [u8], x: &mut [i64;64])
 {
     /*
        i64 carry,i,j;
@@ -977,10 +978,10 @@ fn reduce(r: &mut [u8])
     for i in 0..64 {
         r[i] = 0;
     }
-    modL(r, &mut x);
+    mod_l(r, &mut x);
 }
 
-fn crypto_sign(sm: &mut [u8], smlen: &mut usize, m: &[u8], n: usize, sk: &[u8]) -> isize /* int */
+pub fn crypto_sign(sm: &mut [u8], smlen: &mut usize, m: &[u8], n: usize, sk: &[u8]) -> isize /* int */
 {
     let mut d = [0u8; 64];
     let mut h = [0u8; 64];
@@ -1023,7 +1024,7 @@ fn crypto_sign(sm: &mut [u8], smlen: &mut usize, m: &[u8], n: usize, sk: &[u8]) 
           x[i+j] += ((h[i] as u64) * (d[j] as u64)) as i64;
         }
     }
-    modL(&mut sm[32..], &mut x);
+    mod_l(&mut sm[32..], &mut x);
 
     0
 }
@@ -1100,7 +1101,8 @@ pub fn crypto_sign_open(m: &mut [u8], mlen: &mut usize, sm : &[u8], mut n : usiz
     let mut p = [GF0;4];
     let mut q = p;
 
-    *mlen = -1;
+    /* XXX: check if this cast behaves as tweet-nacl expects */
+    *mlen = -1isize as usize;
     if n < 64 {
         return -1;
     }
