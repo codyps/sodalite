@@ -789,7 +789,6 @@ pub fn crypto_hash(out: &mut [u8], mut m: &[u8])
 {
     /* XXX: uninit in tweet-nacl */
     let mut h = [0u8;64];
-    let mut x = [0u8;256];
 
     let b = m.len();
 
@@ -803,6 +802,7 @@ pub fn crypto_hash(out: &mut [u8], mut m: &[u8])
     let s = m.len() - new_len;
     m = &m[s..][..new_len];
 
+    let mut x = [0u8;256];
     for i in 0..m.len() {
         x[i] = m[i];
     }
@@ -1143,9 +1143,4 @@ pub fn crypto_sign_open(m: &mut [u8], mlen: &mut usize, sm : &[u8], mut n : usiz
     }
     *mlen = n;
     return 0;
-}
-
-
-#[test]
-fn it_works() {
 }

@@ -6,9 +6,16 @@ extern crate rand;
 pub fn crypto_hashblocks_sha512(state: &mut [u8;64], data: &[u8]) -> usize
 {
     let x = unsafe {
-        sys::crypto_hashblocks_sha512_tweet(state.as_mut_ptr(), data.as_ptr(), data.len() as u64)
+        sys::crypto_hashblocks_sha512_tweet(state.as_mut_ptr(), data.as_ptr(), data.len() as sys::c_ulonglong)
     };
     x as usize
+}
+
+pub fn crypto_hash_sha512(out: &mut [u8;64], data: &[u8])
+{
+    unsafe {
+        sys::crypto_hash_sha512_tweet(out.as_mut_ptr(), data.as_ptr(), data.len() as sys::c_ulonglong)
+    };
 }
 
 #[test]

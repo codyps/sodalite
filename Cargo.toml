@@ -8,5 +8,8 @@ homepage = "https://github.com/jmesmon/sodalite"
 repository = "https://github.com/jmesmon/sodalite.git"
 
 [dependencies]
-rand = "*"
-sodiumoxide = "*"
+rand = "0.*"
+
+[dev-dependencies]
+sodiumoxide = "0.*"
+tweetnacl = { path = "tweetnacl", version = "0.*" }
