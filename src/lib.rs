@@ -486,7 +486,7 @@ fn unpack25519(o: &mut Gf, n: &[u8])
 }
 
 /* "add" */
-fn A(o: &mut Gf, a: Gf, b: Gf)
+fn gf_add(o: &mut Gf, a: Gf, b: Gf)
 {
     for i in 0..16 {
         o[i]=a[i]+b[i];
@@ -494,7 +494,7 @@ fn A(o: &mut Gf, a: Gf, b: Gf)
 }
 
 /* "subtract" */
-fn Z(o: &mut Gf, a: Gf, b: Gf)
+fn gf_sub(o: &mut Gf, a: Gf, b: Gf)
 {
     for i in 0..16 {
         o[i]=a[i]-b[i];
@@ -502,7 +502,7 @@ fn Z(o: &mut Gf, a: Gf, b: Gf)
 }
 
 /* "multiply" */
-fn M(o: &mut Gf, a: Gf, b: Gf)
+fn gf_mult(o: &mut Gf, a: Gf, b: Gf)
 {
     let mut t = [0i64;31];
     for i in 0..16 {
@@ -521,9 +521,9 @@ fn M(o: &mut Gf, a: Gf, b: Gf)
 }
 
 /* "square" */
-fn S(o: &mut Gf, a: Gf)
+fn gf_square(o: &mut Gf, a: Gf)
 {
-    M(o,a,a);
+    gf_mult(o,a,a);
 }
 
 fn inv25519(o: &mut Gf, i: Gf)
@@ -535,9 +535,9 @@ fn inv25519(o: &mut Gf, i: Gf)
     for a in (0..254).rev() {
         /* XXX: avoid aliasing with a copy */
         let mut tmp = GF0;
-        S(&mut tmp,c);
+        gf_square(&mut tmp,c);
         if a!=2 && a!=4 {
-            M(&mut c,tmp,i);
+            gf_mult(&mut c,tmp,i);
         } else {
             c = tmp;
         }
@@ -556,9 +556,9 @@ fn pow2523(o: &mut Gf, i: Gf)
     for a in (0..251).rev() {
         /* XXX: avoid aliasing with a copy */
         let mut tmp = GF0;
-        S(&mut tmp,c);
+        gf_square(&mut tmp,c);
         if a != 1 {
-            M(&mut c,tmp,i);
+            gf_mult(&mut c,tmp,i);
         } else {
             c = tmp;
         }
@@ -600,30 +600,30 @@ pub fn crypto_scalarmult(q: &mut [u8;16], n: &[u8], p: &[u8]) -> isize /* int */
 
         /* XXX: avoid aliasing with an extra copy */
         let mut tmp = GF0;
-        A(&mut e,a,c);
-        Z(&mut tmp,a,c);
+        gf_add(&mut e,a,c);
+        gf_sub(&mut tmp,a,c);
         a = tmp;
-        A(&mut c,b,d);
-        Z(&mut tmp,b,d);
+        gf_add(&mut c,b,d);
+        gf_sub(&mut tmp,b,d);
         b = tmp;
-        S(&mut d,e);
-        S(&mut f,a);
-        M(&mut tmp,c,a);
+        gf_square(&mut d,e);
+        gf_square(&mut f,a);
+        gf_mult(&mut tmp,c,a);
         a = tmp;
-        M(&mut c,b,e);
-        A(&mut e,a,c);
-        Z(&mut tmp,a,c);
+        gf_mult(&mut c,b,e);
+        gf_add(&mut e,a,c);
+        gf_sub(&mut tmp,a,c);
         a = tmp;
-        S(&mut b,a);
-        Z(&mut c,d,f);
-        M(&mut a,c,_121665);
-        A(&mut tmp,a,d);
+        gf_square(&mut b,a);
+        gf_sub(&mut c,d,f);
+        gf_mult(&mut a,c,_121665);
+        gf_add(&mut tmp,a,d);
         a = tmp;
-        M(&mut tmp,c,a);
+        gf_mult(&mut tmp,c,a);
         c = tmp;
-        M(&mut a,d,f);
-        M(&mut d,b, *index_16(&x));
-        S(&mut b,e);
+        gf_mult(&mut a,d,f);
+        gf_mult(&mut d,b, *index_16(&x));
+        gf_square(&mut b,e);
         sel25519(&mut a, &mut b, r as isize);
         sel25519(&mut c, &mut d, r as isize);
     }
@@ -639,7 +639,7 @@ pub fn crypto_scalarmult(q: &mut [u8;16], n: &[u8], p: &[u8]) -> isize /* int */
     *index_mut_16(&mut x[32..]) = tmp;
 
     /* XXX: avoid aliasing with an extra copy */
-    M(&mut tmp, *index_16(&x[16..]), *index_16(&x[32..]));
+    gf_mult(&mut tmp, *index_16(&x[16..]), *index_16(&x[32..]));
     *index_mut_16(&mut x[16..]) = tmp;
     pack25519(q, *index_16(&x[16..]));
     return 0;
@@ -690,13 +690,13 @@ pub fn crypto_box_open(m : &mut [u8], c: &[u8] ,d: usize, n: &[u8], y: &[u8], x:
     crypto_box_open_afternm(m,c,d,n, &k)
 }
 
-fn R(x: u64, c: isize /* int */) -> u64 { (x >> c) | (x << (64 - c)) } 
-fn Ch(x: u64, y: u64, z: u64) -> u64 { (x & y) ^ (!x & z) }
-fn Maj(x: u64, y: u64, z: u64) -> u64 { (x & y) ^ (x & z) ^ (y & z) }
-fn Sigma0(x: u64) -> u64 { R(x,28) ^ R(x,34) ^ R(x,39) }
-fn Sigma1(x: u64) -> u64 { R(x,14) ^ R(x,18) ^ R(x,41) }
-fn sigma0(x: u64) -> u64 { R(x, 1) ^ R(x, 8) ^ (x >> 7) }
-fn sigma1(x: u64) -> u64 { R(x,19) ^ R(x,61) ^ (x >> 6) }
+fn r(x: u64, c: isize /* int */) -> u64 { (x >> c) | (x << (64 - c)) } 
+fn ch(x: u64, y: u64, z: u64) -> u64 { (x & y) ^ (!x & z) }
+fn maj(x: u64, y: u64, z: u64) -> u64 { (x & y) ^ (x & z) ^ (y & z) }
+fn upper_sigma0(x: u64) -> u64 { r(x,28) ^ r(x,34) ^ r(x,39) }
+fn upper_sigma1(x: u64) -> u64 { r(x,14) ^ r(x,18) ^ r(x,41) }
+fn sigma0(x: u64) -> u64 { r(x, 1) ^ r(x, 8) ^ (x >> 7) }
+fn sigma1(x: u64) -> u64 { r(x,19) ^ r(x,61) ^ (x >> 6) }
 
 const K : [u64;80] = [
     0x428a2f98d728ae22, 0x7137449123ef65cd, 0xb5c0fbcfec4d3b2f, 0xe9b5dba58189dbbc,
@@ -744,8 +744,8 @@ fn crypto_hashblocks(x: &mut[u8], mut m: &[u8]) -> usize
             for j in 0..8 {
                 b[j] = a[j];
             }
-            let t = a[7] + Sigma1(a[4]) + Ch(a[4],a[5],a[6]) + K[i] + w[i%16];
-            b[7] = t + Sigma0(a[0]) + Maj(a[0],a[1],a[2]);
+            let t = a[7] + upper_sigma1(a[4]) + ch(a[4],a[5],a[6]) + K[i] + w[i%16];
+            b[7] = t + upper_sigma0(a[0]) + maj(a[0],a[1],a[2]);
             b[3] += t;
             for j in 0..8 {
                 a[(j+1)%8] = b[j];
@@ -837,29 +837,29 @@ fn add(p: &mut [Gf;4],q: &[Gf;4])
 
     /* XXX: avoid aliasing with extra copy */
     let mut tmp = GF0;
-    Z(&mut a, p[1], p[0]);
-    Z(&mut t, q[1], q[0]);
-    M(&mut tmp, a, t);
+    gf_sub(&mut a, p[1], p[0]);
+    gf_sub(&mut t, q[1], q[0]);
+    gf_mult(&mut tmp, a, t);
     a = tmp;
-    A(&mut b, p[0], p[1]);
-    A(&mut t, q[0], q[1]);
-    M(&mut tmp, b, t);
+    gf_add(&mut b, p[0], p[1]);
+    gf_add(&mut t, q[0], q[1]);
+    gf_mult(&mut tmp, b, t);
     b = tmp;
-    M(&mut c, p[3], q[3]);
-    M(&mut tmp, c, D2);
+    gf_mult(&mut c, p[3], q[3]);
+    gf_mult(&mut tmp, c, D2);
     c = tmp;
-    M(&mut d, p[2], q[2]);
-    A(&mut tmp, d, d);
+    gf_mult(&mut d, p[2], q[2]);
+    gf_add(&mut tmp, d, d);
     d = tmp;
-    Z(&mut e, b, a);
-    Z(&mut f, d, c);
-    A(&mut g, d, c);
-    A(&mut h, b, a);
+    gf_sub(&mut e, b, a);
+    gf_sub(&mut f, d, c);
+    gf_add(&mut g, d, c);
+    gf_add(&mut h, b, a);
 
-    M(&mut p[0], e, f);
-    M(&mut p[1], h, g);
-    M(&mut p[2], g, f);
-    M(&mut p[3], e, h);
+    gf_mult(&mut p[0], e, f);
+    gf_mult(&mut p[1], h, g);
+    gf_mult(&mut p[2], g, f);
+    gf_mult(&mut p[3], e, h);
 }
 
 fn cswap(p: &mut [Gf;4], q: &mut [Gf;4], b: u8)
@@ -877,8 +877,8 @@ fn pack(r: &mut [u8], p: &[Gf;4])
     let mut zi = GF0;
 
     inv25519(&mut zi, p[2]);
-    M(&mut tx, p[0], zi);
-    M(&mut ty, p[1], zi);
+    gf_mult(&mut tx, p[0], zi);
+    gf_mult(&mut ty, p[1], zi);
     pack25519(r, ty);
     r[31] ^= par25519(tx) << 7;
 }
@@ -908,7 +908,7 @@ fn scalarbase(p: &mut [Gf;4], s: &[u8])
     set25519(&mut q[0],X);
     set25519(&mut q[1],Y);
     set25519(&mut q[2],GF1);
-    M(&mut q[3],X,Y);
+    gf_mult(&mut q[3],X,Y);
     scalarmult(p, &mut q,s);
 }
 
@@ -1048,52 +1048,52 @@ fn unpackneg(r: &mut [Gf;4], p: &[u8; 32]) -> isize /* int */
 
     set25519(&mut r[2],GF1);
     unpack25519(&mut r[1],p);
-    S(&mut num,r[1]);
-    M(&mut den,num,D);
-    Z(&mut tmp,num,r[2]);
+    gf_square(&mut num,r[1]);
+    gf_mult(&mut den,num,D);
+    gf_sub(&mut tmp,num,r[2]);
     num = tmp;
-    A(&mut tmp,r[2],den);
+    gf_add(&mut tmp,r[2],den);
     den = tmp;
 
-    S(&mut den2,den);
-    S(&mut den4,den2);
-    M(&mut den6,den4,den2);
-    M(&mut t,den6,num);
-    M(&mut tmp,t,den);
+    gf_square(&mut den2,den);
+    gf_square(&mut den4,den2);
+    gf_mult(&mut den6,den4,den2);
+    gf_mult(&mut t,den6,num);
+    gf_mult(&mut tmp,t,den);
     t = tmp;
 
     pow2523(&mut tmp,t);
     t = tmp;
-    M(&mut tmp,t,num);
+    gf_mult(&mut tmp,t,num);
     t = tmp;
-    M(&mut tmp,t,den);
+    gf_mult(&mut tmp,t,den);
     t = tmp;
-    M(&mut tmp,t,den);
+    gf_mult(&mut tmp,t,den);
     t = tmp;
-    M(&mut r[0],t,den);
+    gf_mult(&mut r[0],t,den);
 
-    S(&mut chk,r[0]);
-    M(&mut tmp,chk,den);
+    gf_square(&mut chk,r[0]);
+    gf_mult(&mut tmp,chk,den);
     chk = tmp;
     if neq25519(chk, num) {
-        M(&mut tmp,r[0],I);
+        gf_mult(&mut tmp,r[0],I);
         r[0] = tmp;
     }
 
-    S(&mut chk,r[0]);
-    M(&mut tmp,chk,den);
+    gf_square(&mut chk,r[0]);
+    gf_mult(&mut tmp,chk,den);
     chk = tmp;
     if neq25519(chk, num) {
         return -1;
     }
 
     if par25519(r[0]) == (p[31]>>7) {
-        Z(&mut tmp,GF0,r[0]);
+        gf_sub(&mut tmp,GF0,r[0]);
         r[0] = tmp;
     }
 
     let (init, mut rest) = r.split_at_mut(3);
-    M(&mut rest[0],init[0],init[1]);
+    gf_mult(&mut rest[0],init[0],init[1]);
     return 0;
 }
 
