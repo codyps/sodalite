@@ -1,5 +1,7 @@
 use std::cmp;
 use std::mem;
+use std::num::Wrapping;
+use std::num::Wrapping as W;
 extern crate rand;
 
 #[cfg(test)]
@@ -40,13 +42,13 @@ fn ld32(x: &[u8;4]) -> u32
     (u << 8) | (x[0] as u32)
 }
 
-fn dl64(x: &[u8;8]) -> u64
+fn dl64(x: &[u8;8]) -> W<u64>
 {
     let mut u = 0u64;
     for v in x {
         u = u << 8 | (*v as u64);
     }
-    u
+    W(u)
 }
 
 fn st32(x: &mut [u8;4], mut u: u32)
@@ -690,13 +692,13 @@ pub fn crypto_box_open(m : &mut [u8], c: &[u8] ,d: usize, n: &[u8], y: &[u8], x:
     crypto_box_open_afternm(m,c,d,n, &k)
 }
 
-fn r(x: u64, c: isize /* int */) -> u64 { (x >> c) | (x << (64 - c)) } 
-fn ch(x: u64, y: u64, z: u64) -> u64 { (x & y) ^ (!x & z) }
-fn maj(x: u64, y: u64, z: u64) -> u64 { (x & y) ^ (x & z) ^ (y & z) }
-fn upper_sigma0(x: u64) -> u64 { r(x,28) ^ r(x,34) ^ r(x,39) }
-fn upper_sigma1(x: u64) -> u64 { r(x,14) ^ r(x,18) ^ r(x,41) }
-fn sigma0(x: u64) -> u64 { r(x, 1) ^ r(x, 8) ^ (x >> 7) }
-fn sigma1(x: u64) -> u64 { r(x,19) ^ r(x,61) ^ (x >> 6) }
+fn r(x: W<u64>, c: usize) -> W<u64> { (x >> c) | (x << (64 - c)) } 
+fn ch(x: W<u64>, y: W<u64>, z: W<u64>) -> W<u64> { (x & y) ^ (!x & z) }
+fn maj(x: W<u64>, y: W<u64>, z: W<u64>) -> W<u64> { (x & y) ^ (x & z) ^ (y & z) }
+fn upper_sigma0(x: W<u64>) -> W<u64> { r(x,28) ^ r(x,34) ^ r(x,39) }
+fn upper_sigma1(x: W<u64>) -> W<u64> { r(x,14) ^ r(x,18) ^ r(x,41) }
+fn sigma0(x: W<u64>) -> W<u64> { r(x, 1) ^ r(x, 8) ^ (x >> 7) }
+fn sigma1(x: W<u64>) -> W<u64> { r(x,19) ^ r(x,61) ^ (x >> 6) }
 
 const K : [u64;80] = [
     0x428a2f98d728ae22, 0x7137449123ef65cd, 0xb5c0fbcfec4d3b2f, 0xe9b5dba58189dbbc,
@@ -724,10 +726,10 @@ const K : [u64;80] = [
 fn crypto_hashblocks(x: &mut[u8], mut m: &[u8]) -> usize
 {
     /* XXX: all uninit in tweet-nacl */
-    let mut z = [0u64;8];
-    let mut b = [0u64;8];
-    let mut a = [0u64;8];
-    let mut w = [0u64;16];
+    let mut z = [Wrapping(0u64);8];
+    let mut b = [Wrapping(0u64);8];
+    let mut a = [Wrapping(0u64);8];
+    let mut w = [Wrapping(0u64);16];
 
     for i in 0..8 {
         let v = dl64(index_8(&x[8 * i..]));
@@ -744,28 +746,29 @@ fn crypto_hashblocks(x: &mut[u8], mut m: &[u8]) -> usize
             for j in 0..8 {
                 b[j] = a[j];
             }
-            let t = a[7] + upper_sigma1(a[4]) + ch(a[4],a[5],a[6]) + K[i] + w[i%16];
+            let t = a[7] + upper_sigma1(a[4]) + ch(a[4],a[5],a[6]) + W(K[i]) + w[i%16];
             b[7] = t + upper_sigma0(a[0]) + maj(a[0],a[1],a[2]);
-            b[3] += t;
+            b[3] = b[3] + t;
             for j in 0..8 {
                 a[(j+1)%8] = b[j];
             }
             if i%16 == 15 {
                 for j in 0..16 {
-                    w[j] += w[(j+9)%16] + sigma0(w[(j+1)%16]) + sigma1(w[(j+14)%16]);
+                    w[j] = w[j] + w[(j+9)%16] + sigma0(w[(j+1)%16]) + sigma1(w[(j+14)%16]);
                 }
             }
         }
 
         for i in 0..8 {
-            a[i] += z[i]; z[i] = a[i];
+            a[i] = a[i] + z[i];
+            z[i] = a[i];
         }
 
         m = &m[128..];
     }
 
     for i in 0..8 {
-        ts64(&mut x[8*i..],z[i]);
+        ts64(&mut x[8*i..],z[i].0);
     }
 
     m.len()
