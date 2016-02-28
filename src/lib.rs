@@ -798,28 +798,22 @@ pub fn crypto_hash(out: &mut [u8], mut m: &[u8])
     }
 
     crypto_hashblocks(&mut h, m);
-    // m += n
-    // n &= 127
-    // m -= n;
-    let nn = m.len() & 127;
-    let s = m.len() - nn;
-    m = &m[s..];
-    m = &m[..nn];
+    // slice m to the last 'new_len' bytes
+    let new_len = m.len() & 127;
+    let s = m.len() - new_len;
+    m = &m[s..][..new_len];
 
-    for i in 0..256 {
-        x[i] = 0;
-    }
     for i in 0..m.len() {
         x[i] = m[i];
     }
     x[m.len()] = 128;
 
     let new_len = 256-(if m.len()<128 {128} else {0});
-    m = &m[..new_len];
+    let mut x = &mut x[..new_len];
     x[m.len()-9] = (b >> 61) as u8;
     /* FIXME: check cast to u64 */
     ts64(&mut x[m.len()-8..], (b<<3) as u64);
-    crypto_hashblocks(&mut h, &x[..m.len()]);
+    crypto_hashblocks(&mut h, &x);
 
     for i in 0..64 {
         out[i] = h[i];
