@@ -3,6 +3,9 @@ name = "tweetnacl-sys"
 version = "0.1.0"
 authors = ["Cody P Schafer <dev@codyps.com>"]
 build = "build.rs"
+repository = "https://github.com/jmesmon/sodalite.git"
+description = "tweetnacl & FFI bindings to it"
+keywords = [ "nacl", "crypto", "ffi"]
 
 [dependencies]
 libc = "0.*"
