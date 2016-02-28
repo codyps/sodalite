@@ -2,6 +2,9 @@ use std::cmp;
 use std::mem;
 extern crate rand;
 
+#[cfg(test)]
+mod test;
+
 use rand::Rng;
 
 type Gf = [i64;16];
@@ -718,7 +721,7 @@ const K : [u64;80] = [
     0x4cc5d4becb3e42b6, 0x597f299cfc657e2a, 0x5fcb6fab3ad6faec, 0x6c44198c4a475817
 ];
 
-fn crypto_hashblocks(x: &mut[u8], mut m: &[u8], mut n: usize) -> usize
+fn crypto_hashblocks(x: &mut[u8], mut m: &[u8]) -> usize
 {
     /* XXX: all uninit in tweet-nacl */
     let mut z = [0u64;8];
@@ -732,7 +735,7 @@ fn crypto_hashblocks(x: &mut[u8], mut m: &[u8], mut n: usize) -> usize
         a[i] = v;
     }
 
-    while n >= 128 {
+    while m.len() >= 128 {
         for i in 0..16 {
             w[i] = dl64(index_8(&m[8 * i..]));
         }
@@ -759,14 +762,13 @@ fn crypto_hashblocks(x: &mut[u8], mut m: &[u8], mut n: usize) -> usize
         }
 
         m = &m[128..];
-        n -= 128;
     }
 
     for i in 0..8 {
         ts64(&mut x[8*i..],z[i]);
     }
 
-    n
+    m.len()
 }
 
 const IV:[u8; 64] = [
@@ -780,43 +782,45 @@ const IV:[u8; 64] = [
     0x5b,0xe0,0xcd,0x19,0x13,0x7e,0x21,0x79
 ];
 
-pub fn crypto_hash(out: &mut [u8], mut m: &[u8], mut n: usize) -> isize /* int */
+pub fn crypto_hash(out: &mut [u8], mut m: &[u8])
 {
     /* XXX: uninit in tweet-nacl */
     let mut h = [0u8;64];
     let mut x = [0u8;256];
 
-    let b = n;
+    let b = m.len();
 
     for i in 0..64 {
         h[i] = IV[i];
     }
 
-    crypto_hashblocks(&mut h,m,n);
-    let nn = n & 127;
-    let s = n - nn;
+    crypto_hashblocks(&mut h, m);
+    // m += n
+    // n &= 127
+    // m -= n;
+    let nn = m.len() & 127;
+    let s = m.len() - nn;
     m = &m[s..];
-    n = nn;
+    m = &m[..nn];
 
     for i in 0..256 {
         x[i] = 0;
     }
-    for i in 0..n {
+    for i in 0..m.len() {
         x[i] = m[i];
     }
-    x[n] = 128;
+    x[m.len()] = 128;
 
-    n = 256-(if n<128 {128} else {0});
-    x[n-9] = (b >> 61) as u8;
+    let new_len = 256-(if m.len()<128 {128} else {0});
+    m = &m[..new_len];
+    x[m.len()-9] = (b >> 61) as u8;
     /* FIXME: check cast to u64 */
-    ts64(&mut x[n-8..], (b<<3) as u64);
-    crypto_hashblocks(&mut h, &x,n);
+    ts64(&mut x[m.len()-8..], (b<<3) as u64);
+    crypto_hashblocks(&mut h, &x[..m.len()]);
 
     for i in 0..64 {
         out[i] = h[i];
     }
-
-    return 0;
 }
 
 fn add(p: &mut [Gf;4],q: &[Gf;4])
@@ -915,7 +919,7 @@ pub fn crypto_sign_keypair(pk: &mut [u8], sk: &mut [u8]) -> isize /* int */
     let mut p = [GF0;4];
 
     randombytes(&mut sk[..32]);
-    crypto_hash(&mut d, sk, 32);
+    crypto_hash(&mut d, &sk[..32]);
     d[0] &= 248;
     d[31] &= 127;
     d[31] |= 64;
@@ -988,7 +992,7 @@ pub fn crypto_sign(sm: &mut [u8], smlen: &mut usize, m: &[u8], n: usize, sk: &[u
     let mut r = [0u8;64];
     let mut p = [GF0; 4];
 
-    crypto_hash(&mut d, sk, 32);
+    crypto_hash(&mut d, &sk[..32]);
     d[0] &= 248;
     d[31] &= 127;
     d[31] |= 64;
@@ -1001,7 +1005,7 @@ pub fn crypto_sign(sm: &mut [u8], smlen: &mut usize, m: &[u8], n: usize, sk: &[u
         sm[32 + i] = d[32 + i];
     }
 
-    crypto_hash(&mut r, &sm[32..], n + 32);
+    crypto_hash(&mut r, &sm[32..][..n+32]);
     reduce(&mut r);
     scalarbase(&mut p, &r);
     pack(sm, &p);
@@ -1009,7 +1013,7 @@ pub fn crypto_sign(sm: &mut [u8], smlen: &mut usize, m: &[u8], n: usize, sk: &[u
     for i in 0..32 {
         sm[i+32] = sk[i+32];
     }
-    crypto_hash(&mut h,sm,n + 64);
+    crypto_hash(&mut h,&sm[..n + 64]);
     reduce(&mut h);
 
     let mut x = [0i64; 64];
@@ -1118,7 +1122,7 @@ pub fn crypto_sign_open(m: &mut [u8], mlen: &mut usize, sm : &[u8], mut n : usiz
     for i in 0..32 {
         m[i+32] = pk[i];
     }
-    crypto_hash(&mut h,m,n);
+    crypto_hash(&mut h, &m[..n]);
     reduce(&mut h);
     scalarmult(&mut p, &mut q, &h);
 
