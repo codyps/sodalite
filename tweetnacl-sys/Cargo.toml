@@ -1,0 +1,11 @@
+[package]
+name = "tweetnacl-sys"
+version = "0.1.0"
+authors = ["Cody P Schafer <dev@codyps.com>"]
+build = "build.rs"
+
+[dependencies]
+libc = "0.*"
+
+[build-dependencies]
+gcc = "0.*"
