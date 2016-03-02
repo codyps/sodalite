@@ -29,17 +29,17 @@ fn randombytes(x: &mut [u8])
     rng.fill_bytes(x);
 }
 
-fn l32(x: u32, c: usize /* int */) -> u32
+fn l32(x: W<u32>, c: usize /* int */) -> W<u32>
 {
-    (x << c) | ((x & 0xffffffff) >> (32 - c))
+    (x << c) | ((x & W(0xffffffff)) >> (32 - c))
 }
 
-fn ld32(x: &[u8;4]) -> u32
+fn ld32(x: &[u8;4]) -> W<u32>
 {
     let mut u = x[3] as u32;
     u = (u << 8) | (x[2] as u32);
     u = (u << 8) | (x[1] as u32);
-    (u << 8) | (x[0] as u32)
+    W((u << 8) | (x[0] as u32))
 }
 
 fn dl64(x: &[u8;8]) -> W<u64>
@@ -51,10 +51,10 @@ fn dl64(x: &[u8;8]) -> W<u64>
     W(u)
 }
 
-fn st32(x: &mut [u8;4], mut u: u32)
+fn st32(x: &mut [u8;4], mut u: W<u32>)
 {
     for v in x.iter_mut() {
-        *v = u as u8;
+        *v = u.0 as u8;
         u = u >> 8;
     }
 }
@@ -113,10 +113,10 @@ index_n! {index_32 index_mut_32 32}
 
 fn core(out: &mut[u8], inx: &[u8;16], k: &[u8;32], c: &[u8;16], h: bool)
 {
-    let mut w = [0u32; 16];
-    let mut x = [0u32; 16];
-    let mut y = [0u32; 16];
-    let mut t = [0u32; 4];
+    let mut w = [W(0u32); 16];
+    let mut x = [W(0u32); 16];
+    let mut y = [W(0u32); 16];
+    let mut t = [W(0u32); 4];
 
     for i in 0..4 {
         x[5*i] = ld32(index_4(&c[4*i..]));
@@ -134,10 +134,10 @@ fn core(out: &mut[u8], inx: &[u8;16], k: &[u8;32], c: &[u8;16], h: bool)
             for m in 0..4 {
                 t[m] = x[(5*j+4*m)%16];
             }
-            t[1] ^= l32(t[0]+t[3], 7);
-            t[2] ^= l32(t[1]+t[0], 9);
-            t[3] ^= l32(t[2]+t[1],13);
-            t[0] ^= l32(t[3]+t[2],18);
+            t[1] = t[1] ^ l32(t[0]+t[3], 7);
+            t[2] = t[2] ^ l32(t[1]+t[0], 9);
+            t[3] = t[3] ^ l32(t[2]+t[1],13);
+            t[0] = t[0] ^ l32(t[3]+t[2],18);
             for m in 0..4 {
                 w[4*j+(j+m)%4] = t[m];
             }
@@ -149,11 +149,11 @@ fn core(out: &mut[u8], inx: &[u8;16], k: &[u8;32], c: &[u8;16], h: bool)
 
     if h {
         for i in 0..16 {
-            x[i] += y[i];
+            x[i] = x[i] + y[i];
         }
         for i in 0..4 {
-            x[5*i] -= ld32(index_4(&c[4*i..]));
-            x[6+i] -= ld32(index_4(&inx[4*i..]));
+            x[5*i] = x[5*i] - ld32(index_4(&c[4*i..]));
+            x[6+i] = x[6+i] - ld32(index_4(&inx[4*i..]));
         }
         for i in 0..4 {
             st32(index_mut_4(&mut out[4*i..]), x[5*i]);
