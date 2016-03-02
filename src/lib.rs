@@ -59,7 +59,7 @@ fn st32(x: &mut [u8;4], mut u: u32)
     }
 }
 
-fn ts64(x: &mut [u8], mut u: u64)
+fn ts64(x: &mut [u8;8], mut u: u64)
 {
     for v in x.iter_mut().rev() {
         *v = u as u8;
@@ -94,14 +94,14 @@ macro_rules! index_n {
     ($name:ident $name_mut:ident $ct:expr) => {
         #[allow(dead_code)]
         fn $name<T>(a: &[T]) -> &[T;$ct] {
-            let x = &a[0..$ct];
-            unsafe { mem::transmute(x as *const [T] as *const T) }
+            let x = &a[..$ct];
+            unsafe { mem::transmute(x.as_ptr()) }
         }
 
         #[allow(dead_code)]
         fn $name_mut<T>(a: &mut [T]) -> &mut [T;$ct] {
-            let x = &mut a[0..$ct];
-            unsafe { mem::transmute(x as *mut [T] as *mut T) }
+            let x = &mut a[..$ct];
+            unsafe { mem::transmute(x.as_mut_ptr()) }
         }
     }
 }
@@ -768,7 +768,7 @@ fn crypto_hashblocks(x: &mut[u8], mut m: &[u8]) -> usize
     }
 
     for i in 0..8 {
-        ts64(&mut x[8*i..],z[i].0);
+        ts64(index_mut_8(&mut x[8*i..]),z[i].0);
     }
 
     m.len()
@@ -814,7 +814,7 @@ pub fn crypto_hash(out: &mut [u8], mut m: &[u8])
     x[l] = (b >> 61) as u8;
     /* FIXME: check cast to u64 */
     let l = x.len() - 8;
-    ts64(&mut x[l..], (b<<3) as u64);
+    ts64(index_mut_8(&mut x[l..]), (b<<3) as u64);
     crypto_hashblocks(&mut h, &x);
 
     for i in 0..64 {
