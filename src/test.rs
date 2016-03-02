@@ -95,3 +95,26 @@ fn  core_hsalsa20() {
     tweetnacl::crypto_core_hsalsa20(&mut out2, &inx, &k, &c);
     assert_eq!(&out1[..], &out2[..]);
 }
+
+#[test]
+fn stream_salsa20_xor() {
+    let mut rng = rand::thread_rng();
+
+    let mut inx = [0u8;16];
+    rng.fill_bytes(&mut inx);
+
+    let mut k = [0u8;32];
+    rng.fill_bytes(&mut k);
+
+    let mut c = [0u8;32];
+    rng.fill_bytes(&mut c);
+
+    let b = rng.gen_range(0, 32);
+
+    let mut out1 = [0u8;32];
+    super::crypto_stream_salsa20_xor(&mut out1, None, b, &k, &c);
+    let mut out2 = [0u8;32];
+    tweetnacl::crypto_stream_salsa20_xor(&mut out2, None, b, &k, &c);
+    assert_eq!(&out1[..], &out2[..]);
+
+}

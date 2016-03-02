@@ -32,6 +32,12 @@ pub fn crypto_core_hsalsa20(out: &mut [u8], inx: &[u8], k: &[u8], c: &[u8])
     };
 }
 
+pub fn crypto_stream_salsa20_xor(mut c: &mut [u8], m: Option<&[u8]>, b: usize, n: &[u8], k: &[u8;32])
+{
+    unsafe {
+        sys::crypto_stream_salsa20_tweet_xor(c.as_mut_ptr(), match m { Some(v) => v.as_ptr(), None => std::ptr::null() }, b as sys::c_ulonglong, n.as_ptr(), k.as_ptr())
+    };
+}
 #[test]
 fn hashblocks_sha512_twice_eq() {
     use rand::Rng;
