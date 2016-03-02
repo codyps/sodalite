@@ -116,5 +116,9 @@ fn stream_salsa20_xor() {
     let mut out2 = [0u8;32];
     tweetnacl::crypto_stream_salsa20_xor(&mut out2, None, b, &k, &c);
     assert_eq!(&out1[..], &out2[..]);
+}
 
+#[test]
+fn onetimeauth() {
+    assert!(false);
 }

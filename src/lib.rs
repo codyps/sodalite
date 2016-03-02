@@ -234,7 +234,7 @@ pub fn crypto_stream(c: &mut [u8], d: usize, n: &[u8;32], k: &[u8;32])
 {
     let mut s = [0u8; 32];
     crypto_core_hsalsa20(&mut s,index_16(&n[..]),k,SIGMA);
-    crypto_stream_salsa20(c,d,index_16(&n[16..]),&s);
+    crypto_stream_salsa20(c,d,index_16(&n[16..]),&s)
 }
 
 pub fn crypto_stream_xor(c: &mut [u8], m: &[u8], d: usize, n: &[u8;32], k: &[u8;32])
