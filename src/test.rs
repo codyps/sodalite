@@ -37,7 +37,9 @@ fn test_hash() {
 
     // 1 KiB, arbitrary
     let len = rng.gen_range(std::usize::MIN, 1024);
-    //let len = 1024;
+    //let len = 127;
+    
+    println!("length: {}", len);
 
     let mut b = vec![0u8;len];
     rng.fill_bytes(&mut b);

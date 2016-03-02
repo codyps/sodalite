@@ -788,13 +788,9 @@ const IV:[u8; 64] = [
 pub fn crypto_hash(out: &mut [u8], mut m: &[u8])
 {
     /* XXX: uninit in tweet-nacl */
-    let mut h = [0u8;64];
+    let mut h = IV;
 
     let b = m.len();
-
-    for i in 0..64 {
-        h[i] = IV[i];
-    }
 
     crypto_hashblocks(&mut h, m);
     // slice m to the last 'new_len' bytes
@@ -808,7 +804,7 @@ pub fn crypto_hash(out: &mut [u8], mut m: &[u8])
     }
     x[m.len()] = 128;
 
-    let new_len = 256-(if m.len()<128 {128} else {0});
+    let new_len = 256-(if m.len()<112 {128} else {0});
     let mut x = &mut x[..new_len];
     let l = x.len() - 9;
     x[l] = (b >> 61) as u8;
