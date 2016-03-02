@@ -9,7 +9,7 @@ use rand::Rng;
 use std;
 
 #[test]
-fn test_hashblock() {
+fn hashblock() {
     use rand::Rng;
     let mut rng = rand::thread_rng();
 
@@ -30,7 +30,7 @@ fn test_hashblock() {
 }
 
 #[test]
-fn test_hash() {
+fn hash() {
     sodiumoxide::init(); 
 
     let mut rng = rand::thread_rng();
@@ -54,4 +54,24 @@ fn test_hash() {
     let hash3 = sodiumoxide::crypto::hash::hash(&b);
 
     assert_eq!(&hash1[..], &hash3.0[..]);
+}
+
+#[test]
+fn  core_salsa20() {
+    let mut rng = rand::thread_rng();
+
+    let mut inx = [0u8;16];
+    rng.fill_bytes(&mut inx);
+
+    let mut k = [0u8;32];
+    rng.fill_bytes(&mut k);
+
+    let mut c = [0u8;16];
+    rng.fill_bytes(&mut c);
+
+    let mut out1 = [0u8;64];
+    super::crypto_core_salsa20(&mut out1, &inx, &k, &c);
+    let mut out2 = [0u8;64];
+    tweetnacl::crypto_core_salsa20(&mut out2, &inx, &k, &c);
+    assert_eq!(&out1[..], &out2[..]);
 }

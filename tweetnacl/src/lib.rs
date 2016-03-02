@@ -18,6 +18,20 @@ pub fn crypto_hash_sha512(out: &mut [u8;64], data: &[u8])
     };
 }
 
+pub fn crypto_core_salsa20(out: &mut [u8], inx: &[u8], k: &[u8], c: &[u8])
+{
+    unsafe {
+        sys::crypto_core_salsa20_tweet(out.as_mut_ptr(), inx.as_ptr(), k.as_ptr(), c.as_ptr());
+    };
+}
+
+pub fn crypto_core_hsalsa20(out: &mut [u8], inx: &[u8], k: &[u8], c: &[u8])
+{
+    unsafe {
+        sys::crypto_core_hsalsa20_tweet(out.as_mut_ptr(), inx.as_ptr(), k.as_ptr(), c.as_ptr());
+    };
+}
+
 #[test]
 fn hashblocks_sha512_twice_eq() {
     use rand::Rng;
