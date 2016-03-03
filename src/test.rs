@@ -142,3 +142,27 @@ fn onetimeauth() {
     let r2 = tweetnacl::crypto_onetimeauth_verify(&out2, &m, &k);
     assert_eq!(r1, r2);
 }
+
+#[test]
+fn secretbox() {
+    let mut rng = rand::thread_rng();
+
+    // 1024 is arbitrary, 32 is required minimum length by secretbox
+    let len = rng.gen_range(32, 1024);
+    println!("length: {}", len);
+
+    let mut m = vec![0u8;len];
+    rng.fill_bytes(&mut m);
+
+    let mut n = [0u8;32];
+    rng.fill_bytes(&mut n);
+
+    let mut k = [0u8;32];
+    rng.fill_bytes(&mut k);
+
+    let mut out1 = vec![0u8;len];
+    super::crypto_secretbox(&mut out1, &m, &n, &k).unwrap();
+    let mut out2 = vec![0u8;len];
+    tweetnacl::crypto_secretbox(&mut out2, &m, &n, &k).unwrap();
+    assert_eq!(&out1[..], &out2[..]);
+}
