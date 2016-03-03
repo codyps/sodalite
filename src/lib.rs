@@ -244,7 +244,7 @@ pub fn crypto_stream_xor(c: &mut [u8], m: &[u8], d: usize, n: &[u8;32], k: &[u8;
     crypto_stream_salsa20_xor(c,Some(m),d,index_16(&n[16..]), &s)
 }
 
-fn add1305(h: &mut [u32; 16], c: &[u32; 16])
+fn add1305(h: &mut [u32; 17], c: &[u32; 17])
 {
     let mut u = 0u32;
     for j in 0..17 {
@@ -258,10 +258,8 @@ const MINUSP : [u32;17] = [
     5u32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 252
 ];
 
-/*
- * m: &[u8:n]
- */
-pub fn crypto_onetimeauth(out: &mut [u8;16], mut m: &[u8], mut n: usize, k: &[u8;32]) -> isize /* int */
+/* poly1305 */
+pub fn crypto_onetimeauth(out: &mut [u8;16], mut m: &[u8], k: &[u8;32])
 {
     /* FIXME: not zeroed in tweet-nacl */
     let mut x = [0u32;17];
@@ -284,19 +282,18 @@ pub fn crypto_onetimeauth(out: &mut [u8;16], mut m: &[u8], mut n: usize, k: &[u8
     r[12]&=252;
     r[15]&=15;
 
-    while n > 0 {
+    while m.len() > 0 {
         for j in  0..17 {
             c[j] = 0;
         }
 
-        let j_end = cmp::min(n, 16);
+        let j_end = cmp::min(m.len(), 16);
         for j in 0..j_end {
             c[j] = m[j] as u32;
         }
         c[j_end] = 1;
         m = &m[j_end..];
-        n -= j_end;
-        add1305(index_mut_16(&mut h), index_16(&c));
+        add1305(&mut h, &c);
         for i in 0..17 {
             x[i] = 0;
             for j in 0..17 {
@@ -328,7 +325,7 @@ pub fn crypto_onetimeauth(out: &mut [u8;16], mut m: &[u8], mut n: usize, k: &[u8
     for j in 0..17 {
         g[j] = h[j];
     }
-    add1305(index_mut_16(&mut h), index_16(&MINUSP));
+    add1305(&mut h, &MINUSP);
     /* XXX: check signed cast */
     let s : u32 = (-((h[16] >> 7) as i32)) as u32;
     for j in 0..17 {
@@ -339,35 +336,31 @@ pub fn crypto_onetimeauth(out: &mut [u8;16], mut m: &[u8], mut n: usize, k: &[u8
         c[j] = k[j + 16] as u32;
     }
     c[16] = 0;
-    add1305(index_mut_16(&mut h), index_16(&c));
+    add1305(&mut h, &c);
     for j in 0..16 {
         out[j] = h[j] as u8;
     }
-    return 0;
 }
 
-/*
- * m: &[u8:n]
- */
-pub fn crypto_onetimeauth_verify(h: &[u8;16], m: &[u8], n: usize, k: &[u8;32]) -> isize /* int */
+pub fn crypto_onetimeauth_verify(h: &[u8;16], m: &[u8], k: &[u8;32]) -> isize /* int */
 {
     let mut x = [0u8; 16];
-    crypto_onetimeauth(&mut x,m,n,k);
+    crypto_onetimeauth(&mut x,m,k);
     crypto_verify_16(h,&x)
 }
 
-pub fn crypto_secretbox(c: &mut [u8], m: &[u8], d: usize, n: &[u8;32], k: &[u8;32]) -> Result<(),()>
+pub fn crypto_secretbox(c: &mut [u8], m: &[u8], n: &[u8;32], k: &[u8;32]) -> Result<(),()>
 {
-    if d < 32 {
+    if m.len() < 32 {
         return Err(());
     }
 
-    crypto_stream_xor(c,m,d,n,k);
+    crypto_stream_xor(c,m,m.len(),n,k);
     let mut o = [0u8;16];
     {
         /* XXX: we avoid aliasing to make rust happy at the cost of an extra copy via @o */
         let (c_k, c_m) = c.split_at(32);
-        crypto_onetimeauth(&mut o, c_m, d - 32, index_32(c_k));
+        crypto_onetimeauth(&mut o, c_m, index_32(c_k));
     }
     *index_mut_16(&mut c[16..32]) = o;
 
@@ -381,17 +374,17 @@ pub fn crypto_secretbox(c: &mut [u8], m: &[u8], d: usize, n: &[u8;32], k: &[u8;3
 /*
  * c: &[u8:d]
  */
-pub fn crypto_secretbox_open(m: &mut [u8], c: &[u8], d: usize, n: &[u8;32], k: &[u8;32]) -> Result<(),()>
+pub fn crypto_secretbox_open(m: &mut [u8], c: &[u8], n: &[u8;32], k: &[u8;32]) -> Result<(),()>
 {
-    if d < 32 {
+    if c.len() < 32 {
         return Err(());
     }
     let mut x = [0u8; 32];
     crypto_stream(&mut x,32,n,k);
-    if crypto_onetimeauth_verify(index_16(&c[16..]), &c[32..], d - 32, &x) != 0 {
+    if crypto_onetimeauth_verify(index_16(&c[16..]), &c[32..], &x) != 0 {
         return Err(());
     }
-    crypto_stream_xor(m,c,d,n,k);
+    crypto_stream_xor(m,c,c.len(),n,k);
     for i in 0..32 {
         m[i] = 0;
     }
@@ -663,30 +656,30 @@ pub fn crypto_box_beforenm(k: &mut[u8;32], y: &[u8], x: &[u8])
     crypto_core_hsalsa20(k, &_0, &s, SIGMA)
 }
 
-pub fn crypto_box_afternm(c: &mut[u8], m: &[u8], d: usize, n: &[u8;32], k: &[u8;32]) -> Result<(),()>
+pub fn crypto_box_afternm(c: &mut[u8], m: &[u8], n: &[u8;32], k: &[u8;32]) -> Result<(),()>
 {
-    crypto_secretbox(c,m,d,n,k)
+    crypto_secretbox(c,m,n,k)
 }
 
-pub fn crypto_box_open_afternm(m: &mut[u8], c: &[u8], d: usize, n: &[u8;32], k: &[u8;32]) -> Result<(),()>
+pub fn crypto_box_open_afternm(m: &mut[u8], c: &[u8], n: &[u8;32], k: &[u8;32]) -> Result<(),()>
 {
-    crypto_secretbox_open(m,c,d,n,k)
+    crypto_secretbox_open(m,c,n,k)
 }
 
-pub fn crypto_box(c: &mut [u8], m: &[u8], d: usize, n: &[u8;32], y: &[u8], x: &[u8]) -> Result<(),()>
+pub fn crypto_box(c: &mut [u8], m: &[u8], n: &[u8;32], y: &[u8], x: &[u8]) -> Result<(),()>
 {
     /* FIXME: uninit in tweet-nacl */
     let mut k = [0u8; 32];
     crypto_box_beforenm(&mut k,y,x);
-    crypto_box_afternm(c,m,d,n, &k)
+    crypto_box_afternm(c,m,n, &k)
 }
 
-pub fn crypto_box_open(m : &mut [u8], c: &[u8] ,d: usize, n: &[u8;32], y: &[u8], x: &[u8]) -> Result<(),()>
+pub fn crypto_box_open(m : &mut [u8], c: &[u8], n: &[u8;32], y: &[u8], x: &[u8]) -> Result<(),()>
 {
     /* FIXME: k was not zeroed */
     let mut k = [0u8; 32];
     crypto_box_beforenm(&mut k,y,x);
-    crypto_box_open_afternm(m,c,d,n, &k)
+    crypto_box_open_afternm(m,c,n, &k)
 }
 
 fn r(x: W<u64>, c: usize) -> W<u64> { (x >> c) | (x << (64 - c)) } 

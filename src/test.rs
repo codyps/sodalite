@@ -120,5 +120,20 @@ fn stream_salsa20_xor() {
 
 #[test]
 fn onetimeauth() {
-    assert!(false);
+    let mut rng = rand::thread_rng();
+
+    let len = rng.gen_range(std::usize::MIN, 1024);
+    println!("length: {}", len);
+
+    let mut m = vec![0u8;len];
+    rng.fill_bytes(&mut m);
+
+    let mut k = [0u8;32];
+    rng.fill_bytes(&mut k);
+
+    let mut out1 = [0u8;16];
+    super::crypto_onetimeauth(&mut out1, &m, &k);
+    let mut out2 = [0u8;16];
+    tweetnacl::crypto_onetimeauth(&mut out2, &m, &k);
+    assert_eq!(&out1[..], &out2[..]);
 }
