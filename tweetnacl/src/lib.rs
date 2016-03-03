@@ -46,6 +46,14 @@ pub fn crypto_onetimeauth(out: &mut [u8;16], m: &[u8], k: &[u8;32])
     };
 }
 
+pub fn crypto_onetimeauth_verify(h: &[u8;16], m: &[u8], k: &[u8;32]) -> isize
+{
+    let x = unsafe {
+        sys::crypto_onetimeauth_poly1305_tweet_verify(h.as_ptr(), m.as_ptr(), m.len() as sys::c_ulonglong, k.as_ptr())
+    };
+    x as isize
+}
+
 #[test]
 fn hashblocks_sha512_twice_eq() {
     use rand::Rng;

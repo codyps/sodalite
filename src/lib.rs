@@ -77,7 +77,7 @@ fn vn(x: &[u8], y: &[u8]) -> isize
 
     /* FIXME: check this cast. appears this function might be attempting to sign extend. This also
      * affects a bunch of other functions that right now have isize as a return type */
-    ((1 & ((d - 1) >> 8)) - 1) as isize
+    ((W(1) & ((W(d) - W(1)) >> 8)) - W(1)).0 as isize
 }
 
 pub fn crypto_verify_16(x: &[u8;16], y: &[u8;16]) -> isize

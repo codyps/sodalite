@@ -136,4 +136,9 @@ fn onetimeauth() {
     let mut out2 = [0u8;16];
     tweetnacl::crypto_onetimeauth(&mut out2, &m, &k);
     assert_eq!(&out1[..], &out2[..]);
+
+
+    let r1 = super::crypto_onetimeauth_verify(&out1, &m, &k);
+    let r2 = tweetnacl::crypto_onetimeauth_verify(&out2, &m, &k);
+    assert_eq!(r1, r2);
 }
