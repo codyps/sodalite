@@ -145,8 +145,31 @@ fn onetimeauth() {
 
 #[test]
 fn stream() {
-    /* secretbox uses this, good candidate for figuring out why secretbox fails */
-    assert!(false);
+    let mut rng = rand::thread_rng();
+
+    let len = rng.gen_range(1, 1024);
+    println!("length: {}", len);
+
+    let mut m = vec![0u8;len];
+    rng.fill_bytes(&mut m[32..]);
+
+    let mut n = [0u8;32];
+    rng.fill_bytes(&mut n);
+
+    let mut k = [0u8;32];
+    rng.fill_bytes(&mut k);
+
+    let mut out1 = vec![0u8;len];
+    super::crypto_stream(&mut out1, &n, &k);
+    let mut out2 = vec![0u8;len];
+    tweetnacl::crypto_stream(&mut out2, &n, &k);
+    assert_eq!(&out1[..], &out2[..]);
+
+    let mut out1 = vec![0u8;len];
+    super::crypto_stream_xor(&mut out1, &m, &n, &k);
+    let mut out2 = vec![0u8;len];
+    tweetnacl::crypto_stream_xor(&mut out2, &m, &n, &k);
+    assert_eq!(&out1[..], &out2[..]);
 }
 
 #[test]

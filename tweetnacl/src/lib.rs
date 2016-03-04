@@ -83,6 +83,21 @@ pub fn crypto_secretbox_open(m: &mut [u8], c: &[u8], n:&[u8;32], k:&[u8;32]) -> 
     }
 }
 
+pub fn crypto_stream(c: &mut [u8], n: &[u8;32], k: &[u8;32])
+{
+    unsafe {
+        sys::crypto_stream_xsalsa20_tweet(c.as_mut_ptr(), c.len() as sys::c_ulonglong, n.as_ptr(), k.as_ptr())
+    };
+}
+
+pub fn crypto_stream_xor(c: &mut [u8], m: &[u8], n: &[u8;32], k: &[u8;32])
+{
+    assert_eq!(c.len(), m.len());
+    unsafe {
+        sys::crypto_stream_xsalsa20_tweet_xor(c.as_mut_ptr(), m.as_ptr(), c.len() as sys::c_ulonglong, n.as_ptr(), k.as_ptr())
+    };
+}
+
 #[test]
 fn hashblocks_sha512_twice_eq() {
     use rand::Rng;
