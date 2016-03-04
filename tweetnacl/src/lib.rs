@@ -69,6 +69,19 @@ pub fn crypto_secretbox(out: &mut [u8], m: &[u8], n: &[u8;32], k: &[u8;32]) -> R
     }
 }
 
+pub fn crypto_secretbox_open(m: &mut [u8], c: &[u8], n:&[u8;32], k:&[u8;32]) -> Result<(),()>
+{
+    assert_eq!(m.len(), c.len());
+    let x = unsafe {
+        sys::crypto_secretbox_xsalsa20poly1305_tweet_open(m.as_mut_ptr(), c.as_ptr(), m.len() as sys::c_ulonglong, n.as_ptr(), k.as_ptr())
+    };
+
+    match x {
+        0 => Ok(()),
+        _ => Err(()),
+    }
+}
+
 #[test]
 fn hashblocks_sha512_twice_eq() {
     use rand::Rng;

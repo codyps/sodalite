@@ -351,9 +351,8 @@ pub fn crypto_onetimeauth_verify(h: &[u8;16], m: &[u8], k: &[u8;32]) -> isize /*
 
 pub fn crypto_secretbox(c: &mut [u8], m: &[u8], n: &[u8;32], k: &[u8;32]) -> Result<(),()>
 {
-    if m.len() < 32 {
-        return Err(());
-    }
+    /* first 32 bytes must be zero */
+    assert_eq!(&m[0..32], &[0u8;32]);
 
     crypto_stream_xor(c,m,m.len(),n,k);
     let mut o = [0u8;16];

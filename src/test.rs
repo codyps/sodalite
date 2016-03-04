@@ -152,7 +152,7 @@ fn secretbox() {
     println!("length: {}", len);
 
     let mut m = vec![0u8;len];
-    rng.fill_bytes(&mut m);
+    rng.fill_bytes(&mut m[32..]);
 
     let mut n = [0u8;32];
     rng.fill_bytes(&mut n);
@@ -165,4 +165,11 @@ fn secretbox() {
     let mut out2 = vec![0u8;len];
     tweetnacl::crypto_secretbox(&mut out2, &m, &n, &k).unwrap();
     assert_eq!(&out1[..], &out2[..]);
+
+    let mut dec1 = vec![0u8;len];
+    super::crypto_secretbox_open(&mut dec1, &out1, &n, &k).unwrap();
+    let mut dec2 = vec![0u8;len];
+    tweetnacl::crypto_secretbox(&mut dec2, &out2, &n, &k).unwrap();
+    assert_eq!(dec1, dec2);
+    assert_eq!(dec1, m);
 }
