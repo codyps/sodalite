@@ -178,14 +178,15 @@ pub fn crypto_core_hsalsa20(out: &mut [u8;32], inx: &[u8;16], k: &[u8;32], c: &[
 
 static SIGMA : &'static [u8;16] = b"expand 32-byte k";
 
-pub fn crypto_stream_salsa20_xor(mut c: &mut [u8], mut m: Option<&[u8]>, mut b: usize, n: &[u8], k: &[u8;32])
+pub fn crypto_stream_salsa20_xor(mut c: &mut [u8], mut m: Option<&[u8]>, n: &[u8], k: &[u8;32])
 {
     let mut z = [0u8;16];
 
     /* XXX: not zeroed in tweet-nacl, provided by call to crypto_core_salsa20 */
     let mut x = [0u8;64];
+    m.map(|x| assert_eq!(x.len(), c.len()));
 
-    if b == 0 {
+    if c.len() == 0 {
         return;
     }
 
@@ -193,7 +194,7 @@ pub fn crypto_stream_salsa20_xor(mut c: &mut [u8], mut m: Option<&[u8]>, mut b: 
         z[i] = n[i];
     }
 
-    while b >= 64 {
+    while c.len() >= 64 {
         crypto_core_salsa20(&mut x, &mut z,k,SIGMA);
         for i in 0..64 {
             c[i] = match m {
@@ -207,16 +208,15 @@ pub fn crypto_stream_salsa20_xor(mut c: &mut [u8], mut m: Option<&[u8]>, mut b: 
             z[i] = u as u8;
             u >>= 8;
         }
-        b -= 64;
         c = &mut {c}[64..];
         if m.is_some() {
           m = Some(&m.unwrap()[64..])
         }
     }
 
-    if b != 0 {
+    if c.len() != 0 {
         crypto_core_salsa20(&mut x, &mut z,k,SIGMA);
-        for i in 0..b {
+        for i in 0..c.len() {
           c[i] = match m {
             Some(m) => m[i],
             None    => 0
@@ -225,23 +225,23 @@ pub fn crypto_stream_salsa20_xor(mut c: &mut [u8], mut m: Option<&[u8]>, mut b: 
     }
 }
 
-pub fn crypto_stream_salsa20(c: &mut [u8], d: usize, n : &[u8;16], k: &[u8;32])
+pub fn crypto_stream_salsa20(c: &mut [u8], n : &[u8;16], k: &[u8;32])
 {
-    crypto_stream_salsa20_xor(c, None ,d,n,k)
+    crypto_stream_salsa20_xor(c, None, n, k)
 }
 
-pub fn crypto_stream(c: &mut [u8], d: usize, n: &[u8;32], k: &[u8;32])
+pub fn crypto_stream(c: &mut [u8], n: &[u8;32], k: &[u8;32])
 {
     let mut s = [0u8; 32];
     crypto_core_hsalsa20(&mut s,index_16(&n[..]),k,SIGMA);
-    crypto_stream_salsa20(c,d,index_16(&n[16..]),&s)
+    crypto_stream_salsa20(c,index_16(&n[16..]),&s)
 }
 
-pub fn crypto_stream_xor(c: &mut [u8], m: &[u8], d: usize, n: &[u8;32], k: &[u8;32])
+pub fn crypto_stream_xor(c: &mut [u8], m: &[u8], n: &[u8;32], k: &[u8;32])
 {
     let mut s = [0u8; 32];
     crypto_core_hsalsa20(&mut s,index_16(&n[..]),k,SIGMA);
-    crypto_stream_salsa20_xor(c,Some(m),d,index_16(&n[16..]), &s)
+    crypto_stream_salsa20_xor(c,Some(m),index_16(&n[16..]), &s)
 }
 
 fn add1305(h: &mut [u32; 17], c: &[u32; 17])
@@ -351,10 +351,11 @@ pub fn crypto_onetimeauth_verify(h: &[u8;16], m: &[u8], k: &[u8;32]) -> isize /*
 
 pub fn crypto_secretbox(c: &mut [u8], m: &[u8], n: &[u8;32], k: &[u8;32]) -> Result<(),()>
 {
+    assert_eq!(c.len(), m.len());
     /* first 32 bytes must be zero */
     assert_eq!(&m[0..32], &[0u8;32]);
 
-    crypto_stream_xor(c,m,m.len(),n,k);
+    crypto_stream_xor(c,m,n,k);
     let mut o = [0u8;16];
     {
         /* XXX: we avoid aliasing to make rust happy at the cost of an extra copy via @o */
@@ -379,11 +380,11 @@ pub fn crypto_secretbox_open(m: &mut [u8], c: &[u8], n: &[u8;32], k: &[u8;32]) -
         return Err(());
     }
     let mut x = [0u8; 32];
-    crypto_stream(&mut x,32,n,k);
+    crypto_stream(&mut x,n,k);
     if crypto_onetimeauth_verify(index_16(&c[16..]), &c[32..], &x) != 0 {
         return Err(());
     }
-    crypto_stream_xor(m,c,c.len(),n,k);
+    crypto_stream_xor(m,c,n,k);
     for i in 0..32 {
         m[i] = 0;
     }
