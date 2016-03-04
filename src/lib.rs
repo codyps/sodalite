@@ -376,6 +376,7 @@ pub fn crypto_secretbox(c: &mut [u8], m: &[u8], n: &[u8;32], k: &[u8;32]) -> Res
  */
 pub fn crypto_secretbox_open(m: &mut [u8], c: &[u8], n: &[u8;32], k: &[u8;32]) -> Result<(),()>
 {
+    assert_eq!(m.len(), c.len());
     if c.len() < 32 {
         return Err(());
     }

@@ -109,6 +109,7 @@ fn stream_salsa20_xor() {
     let mut c = [0u8;32];
     rng.fill_bytes(&mut c);
 
+    // 1024 is arbitrary
     let b = rng.gen_range(0, 1024);
 
     let mut out1 = vec![0u8;b];
@@ -137,18 +138,24 @@ fn onetimeauth() {
     tweetnacl::crypto_onetimeauth(&mut out2, &m, &k);
     assert_eq!(&out1[..], &out2[..]);
 
-
     let r1 = super::crypto_onetimeauth_verify(&out1, &m, &k);
     let r2 = tweetnacl::crypto_onetimeauth_verify(&out2, &m, &k);
     assert_eq!(r1, r2);
 }
 
 #[test]
+fn stream() {
+    /* secretbox uses this, good candidate for figuring out why secretbox fails */
+    assert!(false);
+}
+
+#[test]
 fn secretbox() {
     let mut rng = rand::thread_rng();
 
-    // 1024 is arbitrary, 32 is required minimum length by secretbox
-    let len = rng.gen_range(32, 1024);
+    // upper bound is arbitrary, 32 is required minimum length by secretbox, but doesn't trigger
+    // any encryption (need +1 for that).
+    let len = rng.gen_range(33, 34);
     println!("length: {}", len);
 
     let mut m = vec![0u8;len];
@@ -172,4 +179,7 @@ fn secretbox() {
     tweetnacl::crypto_secretbox(&mut dec2, &out2, &n, &k).unwrap();
     assert_eq!(dec1, dec2);
     assert_eq!(dec1, m);
+
+
+    /* TODO: "corrupt" some data and ensure it doesn't open the box */
 }
