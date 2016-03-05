@@ -98,6 +98,34 @@ pub fn crypto_stream_xor(c: &mut [u8], m: &[u8], n: &[u8;32], k: &[u8;32])
     };
 }
 
+pub fn crypto_box(c: &mut [u8], m: &[u8], n: &[u8;32], y: &[u8;32], x: &[u8;32]) -> Result<(),()>
+{
+    assert_eq!(c.len(), m.len());
+    let x = unsafe {
+        sys::crypto_box_curve25519xsalsa20poly1305_tweet(c.as_mut_ptr(),
+            m.as_ptr(), m.len() as sys::c_ulonglong, n.as_ptr(), y.as_ptr(), x.as_ptr())
+    };
+
+    match x {
+        0 => Ok(()),
+        _ => Err(()),
+    }
+}
+
+pub fn crypto_box_open(m : &mut [u8], c: &[u8], n: &[u8;32], y: &[u8;32], x: &[u8;32]) -> Result<(),()>
+{
+    assert_eq!(c.len(), m.len());
+    let x = unsafe {
+        sys::crypto_box_curve25519xsalsa20poly1305_tweet_open(m.as_mut_ptr(),
+            c.as_ptr(), c.len() as sys::c_ulonglong, n.as_ptr(), y.as_ptr(), x.as_ptr())
+    };
+
+    match x {
+        0 => Ok(()),
+        _ => Err(()),
+    }
+}
+
 #[test]
 fn hashblocks_sha512_twice_eq() {
     use rand::Rng;

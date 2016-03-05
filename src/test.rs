@@ -173,6 +173,44 @@ fn stream() {
 }
 
 #[test]
+fn box_() {
+    let mut rng = rand::thread_rng();
+
+    // upper bound is arbitrary, 32 is required minimum length by secretbox, but doesn't trigger
+    // any encryption (need +1 for that).
+    let len = rng.gen_range(33, 34);
+    println!("length: {}", len);
+
+    let mut m = vec![0u8;len];
+    rng.fill_bytes(&mut m[32..]);
+
+    let mut n = [0u8;32];
+    rng.fill_bytes(&mut n);
+
+    let mut k = [0u8;32];
+    rng.fill_bytes(&mut k);
+
+    let mut x = [0u8;32];
+    rng.fill_bytes(&mut x);
+
+    let mut out1 = vec![0u8;len];
+    super::crypto_box(&mut out1, &m, &n, &k, &x).unwrap();
+    let mut out2 = vec![0u8;len];
+    tweetnacl::crypto_box(&mut out2, &m, &n, &k, &x).unwrap();
+    assert_eq!(&out1[..], &out2[..]);
+
+    let mut dec1 = vec![0u8;len];
+    super::crypto_box_open(&mut dec1, &out1, &n, &k, &x).unwrap();
+    let mut dec2 = vec![0u8;len];
+    tweetnacl::crypto_box(&mut dec2, &out2, &n, &k, &x).unwrap();
+    assert_eq!(dec1, dec2);
+    assert_eq!(dec1, m);
+
+
+    /* TODO: "corrupt" some data and ensure it doesn't open the box */
+}
+
+#[test]
 fn secretbox() {
     let mut rng = rand::thread_rng();
 
