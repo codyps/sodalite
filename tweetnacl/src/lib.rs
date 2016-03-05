@@ -55,7 +55,7 @@ pub fn crypto_onetimeauth_verify(h: &[u8;16], m: &[u8], k: &[u8;32]) -> isize
     x as isize
 }
 
-pub fn crypto_secretbox(out: &mut [u8], m: &[u8], n: &[u8;32], k: &[u8;32]) -> Result<(),()>
+pub fn crypto_secretbox(out: &mut [u8], m: &[u8], n: &[u8;24], k: &[u8;32]) -> Result<(),()>
 {
     assert_eq!(out.len(), m.len());
     let x = unsafe {
@@ -70,7 +70,7 @@ pub fn crypto_secretbox(out: &mut [u8], m: &[u8], n: &[u8;32], k: &[u8;32]) -> R
     }
 }
 
-pub fn crypto_secretbox_open(m: &mut [u8], c: &[u8], n:&[u8;32], k:&[u8;32]) -> Result<(),()>
+pub fn crypto_secretbox_open(m: &mut [u8], c: &[u8], n:&[u8;24], k:&[u8;32]) -> Result<(),()>
 {
     assert_eq!(m.len(), c.len());
     let x = unsafe {
@@ -83,14 +83,14 @@ pub fn crypto_secretbox_open(m: &mut [u8], c: &[u8], n:&[u8;32], k:&[u8;32]) -> 
     }
 }
 
-pub fn crypto_stream(c: &mut [u8], n: &[u8;32], k: &[u8;32])
+pub fn crypto_stream(c: &mut [u8], n: &[u8;24], k: &[u8;32])
 {
     unsafe {
         sys::crypto_stream_xsalsa20_tweet(c.as_mut_ptr(), c.len() as sys::c_ulonglong, n.as_ptr(), k.as_ptr())
     };
 }
 
-pub fn crypto_stream_xor(c: &mut [u8], m: &[u8], n: &[u8;32], k: &[u8;32])
+pub fn crypto_stream_xor(c: &mut [u8], m: &[u8], n: &[u8;24], k: &[u8;32])
 {
     assert_eq!(c.len(), m.len());
     unsafe {
@@ -98,7 +98,7 @@ pub fn crypto_stream_xor(c: &mut [u8], m: &[u8], n: &[u8;32], k: &[u8;32])
     };
 }
 
-pub fn crypto_box(c: &mut [u8], m: &[u8], n: &[u8;32], y: &[u8;32], x: &[u8;32]) -> Result<(),()>
+pub fn crypto_box(c: &mut [u8], m: &[u8], n: &[u8;24], y: &[u8;32], x: &[u8;32]) -> Result<(),()>
 {
     assert_eq!(c.len(), m.len());
     let x = unsafe {
@@ -112,7 +112,7 @@ pub fn crypto_box(c: &mut [u8], m: &[u8], n: &[u8;32], y: &[u8;32], x: &[u8;32])
     }
 }
 
-pub fn crypto_box_open(m : &mut [u8], c: &[u8], n: &[u8;32], y: &[u8;32], x: &[u8;32]) -> Result<(),()>
+pub fn crypto_box_open(m : &mut [u8], c: &[u8], n: &[u8;24], y: &[u8;32], x: &[u8;32]) -> Result<(),()>
 {
     assert_eq!(c.len(), m.len());
     let x = unsafe {

@@ -103,8 +103,8 @@ fn stream_salsa20_xor() {
     let mut inx = [0u8;16];
     rng.fill_bytes(&mut inx);
 
-    let mut k = [0u8;32];
-    rng.fill_bytes(&mut k);
+    let mut n = [0u8;8];
+    rng.fill_bytes(&mut n);
 
     let mut c = [0u8;32];
     rng.fill_bytes(&mut c);
@@ -113,9 +113,9 @@ fn stream_salsa20_xor() {
     let b = rng.gen_range(0, 1024);
 
     let mut out1 = vec![0u8;b];
-    super::crypto_stream_salsa20_xor(&mut out1, None, &k, &c);
+    super::crypto_stream_salsa20_xor(&mut out1, None, &n, &c);
     let mut out2 = vec![0u8;b];
-    tweetnacl::crypto_stream_salsa20_xor(&mut out2, None, &k, &c);
+    tweetnacl::crypto_stream_salsa20_xor(&mut out2, None, &n, &c);
     assert_eq!(&out1[..], &out2[..]);
 }
 
@@ -153,7 +153,7 @@ fn stream() {
     let mut m = vec![0u8;len];
     rng.fill_bytes(&mut m[32..]);
 
-    let mut n = [0u8;32];
+    let mut n = [0u8;24];
     rng.fill_bytes(&mut n);
 
     let mut k = [0u8;32];
@@ -184,25 +184,24 @@ fn box_() {
     let mut m = vec![0u8;len];
     rng.fill_bytes(&mut m[32..]);
 
-    let mut n = [0u8;32];
+    let mut n = [0u8;24];
     rng.fill_bytes(&mut n);
 
-    let mut k = [0u8;32];
-    rng.fill_bytes(&mut k);
+    let mut pk = [0u8;32];
+    let mut sk = [0u8;32];
 
-    let mut x = [0u8;32];
-    rng.fill_bytes(&mut x);
+    super::crypto_box_keypair(&mut pk, &mut sk);
 
     let mut out1 = vec![0u8;len];
-    super::crypto_box(&mut out1, &m, &n, &k, &x).unwrap();
+    super::crypto_box(&mut out1, &m, &n, &pk, &sk).unwrap();
     let mut out2 = vec![0u8;len];
-    tweetnacl::crypto_box(&mut out2, &m, &n, &k, &x).unwrap();
+    tweetnacl::crypto_box(&mut out2, &m, &n, &pk, &sk).unwrap();
     assert_eq!(&out1[..], &out2[..]);
 
     let mut dec1 = vec![0u8;len];
-    super::crypto_box_open(&mut dec1, &out1, &n, &k, &x).unwrap();
+    super::crypto_box_open(&mut dec1, &out1, &n, &pk, &sk).unwrap();
     let mut dec2 = vec![0u8;len];
-    tweetnacl::crypto_box(&mut dec2, &out2, &n, &k, &x).unwrap();
+    tweetnacl::crypto_box_open(&mut dec2, &out2, &n, &pk, &sk).unwrap();
     assert_eq!(dec1, dec2);
     assert_eq!(dec1, m);
 
@@ -222,7 +221,7 @@ fn secretbox() {
     let mut m = vec![0u8;len];
     rng.fill_bytes(&mut m[32..]);
 
-    let mut n = [0u8;32];
+    let mut n = [0u8;24];
     rng.fill_bytes(&mut n);
 
     let mut k = [0u8;32];
