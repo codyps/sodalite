@@ -561,7 +561,7 @@ fn pow2523(o: &mut Gf, i: Gf)
     }
 }
 
-pub fn crypto_scalarmult(q: &mut [u8;32], n: &[u8], p: &[u8]) -> isize /* int */
+pub fn crypto_scalarmult(q: &mut [u8;32], n: &[u8;32], p: &[u8;32])
 {
     let mut z = [0u8;32];
     /* TODO: not init in tweet-nacl */
@@ -635,25 +635,24 @@ pub fn crypto_scalarmult(q: &mut [u8;32], n: &[u8], p: &[u8]) -> isize /* int */
     gf_mult(&mut tmp, *index_16(&x[16..]), *index_16(&x[32..]));
     *index_mut_16(&mut x[16..]) = tmp;
     pack25519(q, *index_16(&x[16..]));
-    return 0;
 }
 
-pub fn crypto_scalarmult_base(q: &mut [u8;32], n: &[u8]) -> isize /* int */
+pub fn crypto_scalarmult_base(q: &mut [u8;32], n: &[u8;32])
 {
     crypto_scalarmult(q, n, &_9)
 }
 
-pub fn crypto_box_keypair(y: &mut[u8;32], x: &mut[u8;32]) -> isize /* int */
+pub fn crypto_box_keypair(y: &mut[u8;32], x: &mut[u8;32])
 {
     randombytes(&mut x[..32]);
     crypto_scalarmult_base(y,x)
 }
 
-pub fn crypto_box_beforenm(k: &mut[u8;32], y: &[u8], x: &[u8])
+pub fn crypto_box_beforenm(k: &mut[u8;32], y: &[u8;32], x: &[u8;32])
 {
     /* TODO: uninit in tweet-nacl */
     let mut s = [0u8; 32];
-    crypto_scalarmult(index_mut_32(&mut s),x,y);
+    crypto_scalarmult(&mut s,x,y);
     crypto_core_hsalsa20(k, &_0, &s, SIGMA)
 }
 

@@ -126,6 +126,20 @@ pub fn crypto_box_open(m : &mut [u8], c: &[u8], n: &[u8;24], y: &[u8;32], x: &[u
     }
 }
 
+pub fn crypto_scalarmult_base(q: &mut [u8;32], n: &[u8;32])
+{
+    unsafe {
+        sys::crypto_scalarmult_curve25519_tweet_base(q.as_mut_ptr(), n.as_ptr());
+    };
+}
+
+pub fn crypto_scalarmult(q: &mut [u8;32], n: &[u8;32], p: &[u8;32])
+{
+    unsafe {
+        sys::crypto_scalarmult_curve25519_tweet(q.as_mut_ptr(), n.as_ptr(), p.as_ptr())
+    };
+}
+
 #[test]
 fn hashblocks_sha512_twice_eq() {
     use rand::Rng;
