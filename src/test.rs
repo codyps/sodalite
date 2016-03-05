@@ -173,6 +173,20 @@ fn stream() {
 }
 
 #[test]
+fn scalarmult() {
+    let mut rng = rand::thread_rng();
+
+    let mut p = [0u8;32];
+    rng.fill_bytes(&mut p);
+
+    let mut q1 = [0u8;32];
+    super::crypto_scalarmult_base(&mut q1, &p);
+    let mut q2 = [0u8;32];
+    tweetnacl::crypto_scalarmult_base(&mut q2, &p);
+    assert_eq!(&q1[..], &q2[..]);
+}
+
+#[test]
 fn box_() {
     let mut rng = rand::thread_rng();
 
