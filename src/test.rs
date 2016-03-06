@@ -190,8 +190,8 @@ fn scalarmult() {
 fn box_() {
     let mut rng = rand::thread_rng();
 
-    // max lenght is arbitrary
-    let len = rng.gen_range(0, 1024);
+    // max length is arbitrary, 32 is minimum size of crypo_box and must be zeroed.
+    let len = rng.gen_range(32, 1024);
     println!("length: {}", len);
 
     let mut m = vec![0u8;len];
@@ -255,4 +255,41 @@ fn secretbox() {
 
 
     /* TODO: "corrupt" some data and ensure it doesn't open the box */
+}
+
+#[test]
+fn sign() {
+    let mut rng = rand::thread_rng();
+
+    // max length is arbitrary
+    let len = rng.gen_range(0, 1024);
+    println!("length: {}", len);
+
+    let mut m = vec![0u8;len];
+    rng.fill_bytes(&mut m);
+
+    let mut pk = [0u8;32];
+    let mut sk = [0u8;32];
+
+    super::crypto_sign_keypair(&mut pk, &mut sk);
+
+    let n = len + 64;
+    let mut out1 = vec![0u8;n];
+    let v = super::crypto_sign(&mut out1, &m, &sk);
+    out1.truncate(v);
+    let mut out2 = vec![0u8;n];
+    let v = tweetnacl::crypto_sign(&mut out2, &m, &sk);
+    out2.truncate(v);
+    assert_eq!(&out1[..], &out2[..]);
+
+    let mut dec1 = vec![0u8;n];
+    let v = super::crypto_sign_open(&mut dec1, &out1, &pk).unwrap();
+    dec1.truncate(v);
+    let mut dec2 = vec![0u8;n];
+    let v = tweetnacl::crypto_sign_open(&mut dec2, &out2, &pk).unwrap();
+    dec2.truncate(v);
+    assert_eq!(dec1, dec2);
+    assert_eq!(dec1, m);
+
+    /* TODO: corrupt and check the signature does not verify */
 }

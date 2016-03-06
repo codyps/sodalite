@@ -140,6 +140,32 @@ pub fn crypto_scalarmult(q: &mut [u8;32], n: &[u8;32], p: &[u8;32])
     };
 }
 
+pub fn crypto_sign(sm: &mut [u8], m: &[u8], sk: &[u8;32]) -> usize
+{
+    assert_eq!(sm.len(), m.len() + 64);
+    let mut smlen : sys::c_ulonglong = sm.len() as sys::c_ulonglong;
+    unsafe {
+        sys::crypto_sign_ed25519_tweet(sm.as_mut_ptr(), &mut smlen, m.as_ptr(), m.len() as sys::c_ulonglong, sk.as_ptr())
+    };
+
+    smlen as usize
+}
+
+pub fn crypto_sign_open(m: &mut [u8], sm : &[u8], pk: &[u8;32]) -> Result<usize, ()>
+{
+    assert_eq!(m.len(), sm.len());
+    let mut mlen = m.len() as sys::c_ulonglong;
+    let x = unsafe {
+        sys::crypto_sign_ed25519_tweet_open(m.as_mut_ptr(), &mut mlen, sm.as_ptr(), sm.len() as sys::c_ulonglong, pk.as_ptr())
+    };
+
+    match x {
+        0 => Ok(mlen as usize),
+        _ => Err(()),
+    }
+}
+
+
 #[test]
 fn hashblocks_sha512_twice_eq() {
     use rand::Rng;

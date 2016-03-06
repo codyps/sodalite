@@ -665,6 +665,7 @@ pub fn crypto_box_open_afternm(m: &mut[u8], c: &[u8], n: &[u8;24], k: &[u8;32]) 
 
 pub fn crypto_box(c: &mut [u8], m: &[u8], n: &[u8;24], y: &[u8;32], x: &[u8;32]) -> Result<(),()>
 {
+    assert_eq!(&m[..32], &[0u8;32]);
     /* FIXME: uninit in tweet-nacl */
     let mut k = [0u8; 32];
     crypto_box_beforenm(&mut k,y,x);
@@ -673,6 +674,7 @@ pub fn crypto_box(c: &mut [u8], m: &[u8], n: &[u8;24], y: &[u8;32], x: &[u8;32])
 
 pub fn crypto_box_open(m : &mut [u8], c: &[u8], n: &[u8;24], y: &[u8;32], x: &[u8;32]) -> Result<(),()>
 {
+    assert_eq!(&c[..16], &[0u8;16]);
     /* FIXME: k was not zeroed */
     let mut k = [0u8; 32];
     crypto_box_beforenm(&mut k,y,x);
@@ -894,7 +896,7 @@ fn scalarbase(p: &mut [Gf;4], s: &[u8])
     scalarmult(p, &mut q,s);
 }
 
-pub fn crypto_sign_keypair(pk: &mut [u8;32], sk: &mut [u8;32]) -> isize /* int */
+pub fn crypto_sign_keypair(pk: &mut [u8;32], sk: &mut [u8;32])
 {
     /* FIXME: uninit in tweet-nacl */
     let mut d = [0u8; 64];
@@ -912,8 +914,6 @@ pub fn crypto_sign_keypair(pk: &mut [u8;32], sk: &mut [u8;32]) -> isize /* int *
     for i in 0..32 {
         sk[32 + i] = pk[i];
     }
-
-    0
 }
 
 const L: [u64; 32] = [0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c, 0xf7, 0xa2, 0xde, 0xf9, 0xde, 0x14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x10];
@@ -967,8 +967,10 @@ fn reduce(r: &mut [u8])
     mod_l(r, &mut x);
 }
 
-pub fn crypto_sign(sm: &mut [u8], smlen: &mut usize, m: &[u8], n: usize, sk: &[u8]) -> isize /* int */
+pub fn crypto_sign(sm: &mut [u8], m: &[u8], sk: &[u8;32]) -> usize
 {
+    assert_eq!(sm.len(), m.len() + 64);
+
     let mut d = [0u8; 64];
     let mut h = [0u8; 64];
     let mut r = [0u8;64];
@@ -979,16 +981,14 @@ pub fn crypto_sign(sm: &mut [u8], smlen: &mut usize, m: &[u8], n: usize, sk: &[u
     d[31] &= 127;
     d[31] |= 64;
 
-    *smlen = n+64;
-    assert!(sm.len() >= *smlen);
-    for i in 0..n {
+    for i in 0..m.len() {
         sm[64 + i] = m[i];
     }
     for i in 0..32 {
         sm[32 + i] = d[32 + i];
     }
 
-    crypto_hash(&mut r, &sm[32..][..n+32]);
+    crypto_hash(&mut r, &sm[32..][..m.len()+32]);
     reduce(&mut r);
     scalarbase(&mut p, &r);
     pack(index_mut_32(sm), &p);
@@ -996,7 +996,7 @@ pub fn crypto_sign(sm: &mut [u8], smlen: &mut usize, m: &[u8], n: usize, sk: &[u
     for i in 0..32 {
         sm[i+32] = sk[i+32];
     }
-    crypto_hash(&mut h,&sm[..n + 64]);
+    crypto_hash(&mut h,&sm[..m.len() + 64]);
     reduce(&mut h);
 
     let mut x = [0i64; 64];
@@ -1013,7 +1013,7 @@ pub fn crypto_sign(sm: &mut [u8], smlen: &mut usize, m: &[u8], n: usize, sk: &[u
     }
     mod_l(&mut sm[32..], &mut x);
 
-    0
+    m.len()+64
 }
 
 fn unpackneg(r: &mut [Gf;4], p: &[u8; 32]) -> isize /* int */
@@ -1080,32 +1080,31 @@ fn unpackneg(r: &mut [Gf;4], p: &[u8; 32]) -> isize /* int */
     return 0;
 }
 
-pub fn crypto_sign_open(m: &mut [u8], mlen: &mut usize, sm : &[u8], mut n : usize, pk: &[u8;32]) -> isize /* int */
+pub fn crypto_sign_open(m: &mut [u8], sm : &[u8], pk: &[u8;32]) -> Result<usize, ()>
 {
+    assert_eq!(m.len(), sm.len());
     let mut t = [0u8;32];
     let mut h = [0u8;64];
 
     let mut p = [GF0;4];
     let mut q = p;
 
-    /* XXX: check if this cast behaves as tweet-nacl expects */
-    *mlen = -1isize as usize;
-    if n < 64 {
-        return -1;
+    if sm.len() < 64 {
+        return Err(())
     }
 
     /* TODO: check if upackneg should return a bool */
     if unpackneg(&mut q,pk) != 0 {
-        return -1;
+        return Err(());
     }
 
-    for i in 0..n {
+    for i in 0..sm.len() {
         m[i] = sm[i];
     }
     for i in 0..32 {
         m[i+32] = pk[i];
     }
-    crypto_hash(&mut h, &m[..n]);
+    crypto_hash(&mut h, &m[..sm.len()]);
     reduce(&mut h);
     scalarmult(&mut p, &mut q, &h);
 
@@ -1113,18 +1112,18 @@ pub fn crypto_sign_open(m: &mut [u8], mlen: &mut usize, sm : &[u8], mut n : usiz
     add(&mut p, &q);
     pack(&mut t, &p);
 
-    n -= 64;
+
+    let n = sm.len() - 64;
     /* TODO: check if crypto_verify_32 should return a bool */
     if crypto_verify_32(index_32(sm), &t) != 0 {
         for i in 0..n {
             m[i] = 0;
         }
-        return -1;
+        return Err(());
     }
 
     for i in 0..n {
         m[i] = sm[i + 64];
     }
-    *mlen = n;
-    return 0;
+    Ok(n)
 }
