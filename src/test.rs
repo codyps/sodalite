@@ -190,9 +190,8 @@ fn scalarmult() {
 fn box_() {
     let mut rng = rand::thread_rng();
 
-    // upper bound is arbitrary, 32 is required minimum length by secretbox, but doesn't trigger
-    // any encryption (need +1 for that).
-    let len = rng.gen_range(33, 34);
+    // max lenght is arbitrary
+    let len = rng.gen_range(0, 1024);
     println!("length: {}", len);
 
     let mut m = vec![0u8;len];
@@ -229,7 +228,7 @@ fn secretbox() {
 
     // upper bound is arbitrary, 32 is required minimum length by secretbox, but doesn't trigger
     // any encryption (need +1 for that).
-    let len = rng.gen_range(33, 34);
+    let len = rng.gen_range(33, 1024);
     println!("length: {}", len);
 
     let mut m = vec![0u8;len];
@@ -250,7 +249,7 @@ fn secretbox() {
     let mut dec1 = vec![0u8;len];
     super::crypto_secretbox_open(&mut dec1, &out1, &n, &k).unwrap();
     let mut dec2 = vec![0u8;len];
-    tweetnacl::crypto_secretbox(&mut dec2, &out2, &n, &k).unwrap();
+    tweetnacl::crypto_secretbox_open(&mut dec2, &out2, &n, &k).unwrap();
     assert_eq!(dec1, dec2);
     assert_eq!(dec1, m);
 

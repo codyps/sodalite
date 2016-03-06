@@ -363,10 +363,7 @@ pub fn crypto_secretbox(c: &mut [u8], m: &[u8], n: &[u8;24], k: &[u8;32]) -> Res
         crypto_onetimeauth(&mut o, c_m, index_32(c_k));
     }
     *index_mut_16(&mut c[16..32]) = o;
-
-    for i in 0..16 {
-        c[i] = 0;
-    }
+    *index_mut_16(c) = [0u8;16];
 
     Ok(())
 }
