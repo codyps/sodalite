@@ -563,17 +563,17 @@ fn pow2523(o: &mut Gf, i: Gf)
 
 pub fn crypto_scalarmult(q: &mut [u8;32], n: &[u8;32], p: &[u8;32])
 {
-    let mut z = [0u8;32];
+    let mut z = *n;
     /* TODO: not init in tweet-nacl */
     let mut x = [0i64;80];
 
-    /* TODO: not init in tweet-nacl { */
-    let mut e = GF0;
-    let mut f = GF0;
-    /* } */
     let mut a = GF0;
-    let mut c = GF0;
-    let mut d = GF0;
+    let mut c = a;
+    let mut d = a;
+    /* TODO: not init in tweet-nacl { */
+    let mut e = a;
+    let mut f = a;
+    /* } */
 
     z[31]=(n[31]&127)|64;
     z[0]&=248;
