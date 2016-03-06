@@ -262,7 +262,7 @@ fn sign() {
     let mut rng = rand::thread_rng();
 
     // max length is arbitrary
-    let len = rng.gen_range(0, 1024);
+    let len = rng.gen_range(0, 32);
     println!("length: {}", len);
 
     let mut m = vec![0u8;len];
@@ -280,7 +280,7 @@ fn sign() {
     let mut out2 = vec![0u8;n];
     let v = tweetnacl::crypto_sign(&mut out2, &m, &sk);
     out2.truncate(v);
-    assert_eq!(&out1[..], &out2[..]);
+    assert_eq!(out1, out2);
 
     let mut dec1 = vec![0u8;n];
     let v = super::crypto_sign_open(&mut dec1, &out1, &pk).unwrap();

@@ -918,7 +918,7 @@ pub fn crypto_sign_keypair(pk: &mut [u8;32], sk: &mut [u8;64])
 
 const L: [u64; 32] = [0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c, 0xf7, 0xa2, 0xde, 0xf9, 0xde, 0x14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x10];
 
-fn mod_l(r: &mut [u8], x: &mut [i64;64])
+fn mod_l(r: &mut [u8;32], x: &mut [i64;64])
 {
     /*
        i64 carry,i,j;
@@ -953,7 +953,7 @@ fn mod_l(r: &mut [u8], x: &mut [i64;64])
     }
 }
 
-fn reduce(r: &mut [u8])
+fn reduce(r: &mut [u8;64])
 {
     /* TODO: uninitialized in tweet-nacl */
     let mut x = [0i64;64];
@@ -964,7 +964,7 @@ fn reduce(r: &mut [u8])
     for i in 0..64 {
         r[i] = 0;
     }
-    mod_l(r, &mut x);
+    mod_l(index_mut_32(r), &mut x);
 }
 
 pub fn crypto_sign(sm: &mut [u8], m: &[u8], sk: &[u8;64]) -> usize
@@ -1011,7 +1011,7 @@ pub fn crypto_sign(sm: &mut [u8], m: &[u8], sk: &[u8;64]) -> usize
           x[i+j] += ((h[i] as u64) * (d[j] as u64)) as i64;
         }
     }
-    mod_l(&mut sm[32..], &mut x);
+    mod_l(index_mut_32(&mut sm[32..]), &mut x);
 
     m.len()+64
 }
