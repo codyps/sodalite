@@ -147,11 +147,11 @@ fn onetimeauth() {
 fn stream() {
     let mut rng = rand::thread_rng();
 
-    let len = rng.gen_range(1, 1024);
+    let len = rng.gen_range(0, 1024);
     println!("length: {}", len);
 
     let mut m = vec![0u8;len];
-    rng.fill_bytes(&mut m[32..]);
+    rng.fill_bytes(&mut m);
 
     let mut n = [0u8;24];
     rng.fill_bytes(&mut n);
