@@ -140,7 +140,7 @@ pub fn crypto_scalarmult(q: &mut [u8;32], n: &[u8;32], p: &[u8;32])
     };
 }
 
-pub fn crypto_sign(sm: &mut [u8], m: &[u8], sk: &[u8;32]) -> usize
+pub fn crypto_sign(sm: &mut [u8], m: &[u8], sk: &[u8;64]) -> usize
 {
     assert_eq!(sm.len(), m.len() + 64);
     let mut smlen : sys::c_ulonglong = sm.len() as sys::c_ulonglong;

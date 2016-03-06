@@ -896,7 +896,7 @@ fn scalarbase(p: &mut [Gf;4], s: &[u8])
     scalarmult(p, &mut q,s);
 }
 
-pub fn crypto_sign_keypair(pk: &mut [u8;32], sk: &mut [u8;32])
+pub fn crypto_sign_keypair(pk: &mut [u8;32], sk: &mut [u8;64])
 {
     /* FIXME: uninit in tweet-nacl */
     let mut d = [0u8; 64];
@@ -967,7 +967,7 @@ fn reduce(r: &mut [u8])
     mod_l(r, &mut x);
 }
 
-pub fn crypto_sign(sm: &mut [u8], m: &[u8], sk: &[u8;32]) -> usize
+pub fn crypto_sign(sm: &mut [u8], m: &[u8], sk: &[u8;64]) -> usize
 {
     assert_eq!(sm.len(), m.len() + 64);
 

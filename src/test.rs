@@ -269,7 +269,7 @@ fn sign() {
     rng.fill_bytes(&mut m);
 
     let mut pk = [0u8;32];
-    let mut sk = [0u8;32];
+    let mut sk = [0u8;64];
 
     super::crypto_sign_keypair(&mut pk, &mut sk);
 
