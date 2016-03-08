@@ -165,6 +165,13 @@ pub fn crypto_sign_open(m: &mut [u8], sm : &[u8], pk: &[u8;32]) -> Result<usize,
     }
 }
 
+pub fn crypto_sign_keypair(pk: &mut [u8;32], sk: &mut [u8;64])
+{
+    unsafe {
+        sys::crypto_sign_ed25519_tweet_keypair(pk.as_mut_ptr(), sk.as_mut_ptr())
+    };
+}
+
 
 #[test]
 fn hashblocks_sha512_twice_eq() {
