@@ -867,7 +867,7 @@ fn pack(r: &mut [u8;32], p: &[Gf;4])
     r[31] ^= par25519(tx) << 7;
 }
 
-fn scalarmult(p: &mut [Gf;4], q: &mut [Gf;4], s: &[u8])
+fn scalarmult(p: &mut [Gf;4], q: &mut [Gf;4], s: &[u8;32])
 {
     set25519(&mut p[0],GF0);
     set25519(&mut p[1],GF1);
@@ -885,7 +885,7 @@ fn scalarmult(p: &mut [Gf;4], q: &mut [Gf;4], s: &[u8])
     }
 }
 
-fn scalarbase(p: &mut [Gf;4], s: &[u8])
+fn scalarbase(p: &mut [Gf;4], s: &[u8;32])
 {
     /* XXX: uninit */
     let mut q = [GF0; 4];
@@ -908,7 +908,7 @@ pub fn crypto_sign_keypair(pk: &mut [u8;32], sk: &mut [u8;64])
     d[31] &= 127;
     d[31] |= 64;
 
-    scalarbase(&mut p,&d);
+    scalarbase(&mut p, index_32(&d));
     pack(pk,&p);
 
     for i in 0..32 {
@@ -990,7 +990,7 @@ pub fn crypto_sign(sm: &mut [u8], m: &[u8], sk: &[u8;64]) -> usize
 
     crypto_hash(&mut r, &sm[32..][..m.len()+32]);
     reduce(&mut r);
-    scalarbase(&mut p, &r);
+    scalarbase(&mut p, index_32(&r));
     pack(index_mut_32(sm), &p);
 
     for i in 0..32 {
@@ -1106,9 +1106,9 @@ pub fn crypto_sign_open(m: &mut [u8], sm : &[u8], pk: &[u8;32]) -> Result<usize,
     }
     crypto_hash(&mut h, &m[..sm.len()]);
     reduce(&mut h);
-    scalarmult(&mut p, &mut q, &h);
+    scalarmult(&mut p, &mut q, index_32(&h));
 
-    scalarbase(&mut q, &sm[32..]);
+    scalarbase(&mut q, index_32(&sm[32..]));
     add(&mut p, &q);
     pack(&mut t, &p);
 
