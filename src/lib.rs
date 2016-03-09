@@ -1,6 +1,5 @@
 use std::cmp;
 use std::mem;
-use std::num::Wrapping;
 use std::num::Wrapping as W;
 extern crate rand;
 
@@ -715,10 +714,10 @@ const K : [u64;80] = [
 fn crypto_hashblocks(x: &mut[u8], mut m: &[u8]) -> usize
 {
     /* XXX: all uninit in tweet-nacl */
-    let mut z = [Wrapping(0u64);8];
-    let mut b = [Wrapping(0u64);8];
-    let mut a = [Wrapping(0u64);8];
-    let mut w = [Wrapping(0u64);16];
+    let mut z = [W(0u64);8];
+    let mut b = [W(0u64);8];
+    let mut a = [W(0u64);8];
+    let mut w = [W(0u64);16];
 
     for i in 0..8 {
         let v = dl64(index_8(&x[8 * i..]));
