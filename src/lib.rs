@@ -435,7 +435,8 @@ fn pack25519(o: &mut [u8;32], n: Gf)
             m[i-1]&=0xffff;
         }
         m[15]=t[15]-0x7fff-((m[14]>>16)&1);
-        let b=(m[15]>>16)&1;
+        /* FIXME: check isize casts here, seems like b is a boolean */
+        let b : isize = ((m[15]>>16)&1) as isize;
         m[14]&=0xffff;
         /* FIXME: check isize cast here */
         sel25519(&mut t, &mut m, 1-b as isize);
