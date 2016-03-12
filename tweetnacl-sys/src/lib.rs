@@ -1,6 +1,6 @@
 extern crate libc;
 
-pub use libc::{c_int,c_ulonglong};
+pub use libc::{c_int,c_ulonglong,c_longlong};
 
 extern {
     pub fn crypto_auth_hmacsha512256_tweet(out: *mut u8,x: *const u8,n: c_ulonglong,x: *const u8) -> c_int;
@@ -35,4 +35,5 @@ extern {
 
 
     pub fn crypto_sign_ed25519_tweet_keypair_seed(x: *mut u8, x: *mut u8, x: *const u8) -> c_int;
+    pub fn crypto_modL_tweet(r: *mut u8,x: *mut c_longlong);
 }

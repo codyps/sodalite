@@ -934,11 +934,11 @@ fn mod_l(r: &mut [u8;32], x: &mut [i64;64])
         let mut carry = 0;
         for j in (i - 32)..(i - 12) {
             /* FIXME: check cast to i64 */
-            x[j] += carry - (16 * x[i] * L[j - (i - 32)] as i64) as i64;
+            x[j] += carry - 16 * x[i] * L[j - (i - 32)] as i64;
             carry = (x[j] + 128) >> 8;
             x[j] -= carry << 8;
         }
-        x[i - 13] += carry;
+        x[i - 12 - 13] += carry;
         x[i] = 0;
     }
 

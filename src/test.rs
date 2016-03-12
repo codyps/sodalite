@@ -303,3 +303,30 @@ fn sign() {
 
     /* TODO: corrupt and check the signature does not verify */
 }
+
+#[test]
+fn mod_l() {
+    let mut rng = rand::thread_rng();
+
+    // max length is arbitrary
+    let len = rng.gen_range(0, 1);
+    println!("length: {}", len);
+
+    let mut r = [0u8;32];
+    let mut x = [0i64;64];
+
+    rng.fill_bytes(&mut r[..]);
+    for v in x.iter_mut() {
+        *v = rng.next_u64() as i64;
+    }
+
+    let mut r2 = r;
+    let mut x2 = x;
+
+    super::mod_l(&mut r, &mut x);
+    tweetnacl::crypto_mod_l(&mut r2, &mut x2);
+
+    assert_eq!(&r[..], &r2[..]);
+    assert_eq!(&x[..], &x2[..])
+
+}

@@ -179,6 +179,17 @@ pub fn crypto_sign_keypair_seed(pk: &mut [u8;32], sk: &mut [u8;64], seed: &[u8;3
     };
 }
 
+pub fn crypto_mod_l(r: &mut [u8;32], x: &mut [i64;64])
+{
+    let mut x_sys : Vec<_> = (&x[..]).iter().cloned().map(|x| x as sys::c_longlong).collect();
+    unsafe {
+        sys::crypto_modL_tweet(r.as_mut_ptr(), x_sys.as_mut_ptr());
+    };
+
+    for (i, v) in x_sys.into_iter().enumerate() {
+        x[i] = v;
+    }
+}
 
 #[test]
 fn hashblocks_sha512_twice_eq() {
