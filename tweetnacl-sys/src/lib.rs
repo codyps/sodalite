@@ -32,4 +32,7 @@ extern {
     pub fn crypto_stream_salsa20_tweet_xor(out: *mut u8,x: *const u8,n: c_ulonglong,x: *const u8,x: *const u8) -> c_int;
     pub fn crypto_verify_16_tweet(x: *const u8,x: *const u8) -> c_int;
     pub fn crypto_verify_32_tweet(x: *const u8,x: *const u8) -> c_int;
+
+
+    pub fn crypto_sign_ed25519_tweet_keypair_seed(x: *mut u8, x: *mut u8, x: *const u8) -> c_int;
 }

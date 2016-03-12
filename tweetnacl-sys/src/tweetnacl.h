@@ -201,6 +201,7 @@ extern int crypto_secretbox_xsalsa20poly1305_tweet_open(unsigned char *,const un
 #define crypto_sign crypto_sign_ed25519
 #define crypto_sign_open crypto_sign_ed25519_open
 #define crypto_sign_keypair crypto_sign_ed25519_keypair
+#define crypto_sign_keypair_seed crypto_sign_ed25519_keypair_seed
 #define crypto_sign_BYTES crypto_sign_ed25519_BYTES
 #define crypto_sign_PUBLICKEYBYTES crypto_sign_ed25519_PUBLICKEYBYTES
 #define crypto_sign_SECRETKEYBYTES crypto_sign_ed25519_SECRETKEYBYTES
@@ -212,10 +213,12 @@ extern int crypto_secretbox_xsalsa20poly1305_tweet_open(unsigned char *,const un
 extern int crypto_sign_ed25519_tweet(unsigned char *,unsigned long long *,const unsigned char *,unsigned long long,const unsigned char *);
 extern int crypto_sign_ed25519_tweet_open(unsigned char *,unsigned long long *,const unsigned char *,unsigned long long,const unsigned char *);
 extern int crypto_sign_ed25519_tweet_keypair(unsigned char *,unsigned char *);
+extern int crypto_sign_ed25519_tweet_keypair_seed(unsigned char *,unsigned char *,const unsigned char *);
 #define crypto_sign_ed25519_tweet_VERSION "-"
 #define crypto_sign_ed25519 crypto_sign_ed25519_tweet
 #define crypto_sign_ed25519_open crypto_sign_ed25519_tweet_open
 #define crypto_sign_ed25519_keypair crypto_sign_ed25519_tweet_keypair
+#define crypto_sign_ed25519_keypair_seed crypto_sign_ed25519_tweet_keypair_seed
 #define crypto_sign_ed25519_BYTES crypto_sign_ed25519_tweet_BYTES
 #define crypto_sign_ed25519_PUBLICKEYBYTES crypto_sign_ed25519_tweet_PUBLICKEYBYTES
 #define crypto_sign_ed25519_SECRETKEYBYTES crypto_sign_ed25519_tweet_SECRETKEYBYTES

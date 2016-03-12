@@ -895,13 +895,13 @@ fn scalarbase(p: &mut [Gf;4], s: &[u8;32])
     scalarmult(p, &mut q,s);
 }
 
-pub fn crypto_sign_keypair(pk: &mut [u8;32], sk: &mut [u8;64])
+pub fn crypto_sign_keypair_seed(pk: &mut [u8;32], sk: &mut [u8;64], seed: &[u8;32])
 {
     /* FIXME: uninit in tweet-nacl */
     let mut d = [0u8; 64];
     let mut p = [GF0;4];
 
-    randombytes(&mut sk[..32]);
+    *index_mut_32(sk) = *seed;
     crypto_hash(&mut d, &sk[..32]);
     d[0] &= 248;
     d[31] &= 127;
@@ -913,6 +913,13 @@ pub fn crypto_sign_keypair(pk: &mut [u8;32], sk: &mut [u8;64])
     for i in 0..32 {
         sk[32 + i] = pk[i];
     }
+}
+
+pub fn crypto_sign_keypair(pk: &mut [u8;32], sk: &mut [u8;64])
+{
+    let mut seed = [0u8;32];
+    randombytes(&mut seed);
+    crypto_sign_keypair_seed(pk, sk, &seed);
 }
 
 const L: [u64; 32] = [0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c, 0xf7, 0xa2, 0xde, 0xf9, 0xde, 0x14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x10];

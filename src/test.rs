@@ -270,8 +270,17 @@ fn sign() {
 
     let mut pk = [0u8;32];
     let mut sk = [0u8;64];
+    let mut pk2 = [0u8;32];
+    let mut sk2 = [0u8;64];
 
-    super::crypto_sign_keypair(&mut pk, &mut sk);
+    let mut seed = [0u8;32];
+    rng.fill_bytes(&mut seed);
+
+    super::crypto_sign_keypair_seed(&mut pk, &mut sk, &seed);
+    tweetnacl::crypto_sign_keypair_seed(&mut pk2, &mut sk2, &seed);
+
+    assert_eq!(&pk[..], &pk2[..]);
+    assert_eq!(&sk[..], &sk2[..]);
 
     let n = len + 64;
     let mut out1 = vec![0u8;n];

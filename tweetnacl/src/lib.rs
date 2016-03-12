@@ -172,6 +172,13 @@ pub fn crypto_sign_keypair(pk: &mut [u8;32], sk: &mut [u8;64])
     };
 }
 
+pub fn crypto_sign_keypair_seed(pk: &mut [u8;32], sk: &mut [u8;64], seed: &[u8;32])
+{
+    unsafe {
+        sys::crypto_sign_ed25519_tweet_keypair_seed(pk.as_mut_ptr(), sk.as_mut_ptr(), seed.as_ptr())
+    };
+}
+
 
 #[test]
 fn hashblocks_sha512_twice_eq() {
