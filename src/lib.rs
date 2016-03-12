@@ -873,11 +873,11 @@ fn scalarmult(p: &mut [Gf;4], q: &mut [Gf;4], s: &[u8;32])
     set25519(&mut p[2],GF1);
     set25519(&mut p[3],GF0);
     for i in (0..256).rev() {
-        let b = (s[i/8]>>(i&7))&1;
+        let b : u8 = (s[i/8]>>(i&7))&1;
         /* XXX: avoid aliasing with extra copy */
-        let mut tmp = [GF0;4];
         cswap(p,q,b);
         add(q,p);
+        let mut tmp = *p;
         add(&mut tmp,p);
         *p = tmp;
         cswap(p,q,b);
@@ -970,10 +970,12 @@ pub fn crypto_sign(sm: &mut [u8], m: &[u8], sk: &[u8;64]) -> usize
 {
     assert_eq!(sm.len(), m.len() + 64);
 
+    /* XXX: uninit in tweet nacl { */
     let mut d = [0u8; 64];
     let mut h = [0u8; 64];
     let mut r = [0u8;64];
     let mut p = [GF0; 4];
+    /* } */
 
     crypto_hash(&mut d, &sk[..32]);
     d[0] &= 248;
@@ -1010,6 +1012,7 @@ pub fn crypto_sign(sm: &mut [u8], m: &[u8], sk: &[u8;64]) -> usize
           x[i+j] += ((h[i] as u64) * (d[j] as u64)) as i64;
         }
     }
+
     mod_l(index_mut_32(&mut sm[32..]), &mut x);
 
     m.len()+64
