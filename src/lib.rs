@@ -779,7 +779,9 @@ pub fn crypto_hash(out: &mut [u8], mut m: &[u8])
     /* XXX: uninit in tweet-nacl */
     let mut h = IV;
 
-    let b = m.len();
+    /* XXX: idealy, we'd either cast (if usize < u64) or keep the existing type (if usize >= u64)
+     * */
+    let b = m.len() as u64;
 
     crypto_hashblocks(&mut h, m);
     // slice m to the last 'new_len' bytes
