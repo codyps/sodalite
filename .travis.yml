@@ -1,6 +1,12 @@
+# ex: ts=2 sw=2 sts=2 et
 sudo: false
 
 language: generic
+
+apt:
+  packages:
+    - libsodium
+
 
 matrix:
   include:
