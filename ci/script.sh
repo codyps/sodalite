@@ -1,6 +1,8 @@
+# ex: sts=4 sw=4 ts=4 et
 # `script` phase: you usually build, test and generate docs in this phase
 
 set -ex
+
 export PKG_CONFIG_ALLOW_CROSS=1
 
 # TODO modify this phase as you see fit
@@ -10,6 +12,8 @@ export PKG_CONFIG_ALLOW_CROSS=1
 
 case "$TRAVIS_OS_NAME" in
   linux)
+    # without this, gcc-rs may try to do funny things and guess the name of CC
+    export TARGET_CC=gcc
     host=x86_64-unknown-linux-gnu
     ;;
   osx)
