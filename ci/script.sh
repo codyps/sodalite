@@ -39,7 +39,6 @@ case "$TARGET" in
     ;;
   *)
     cargo build --target $TARGET --verbose
-    cargo run --target $TARGET
     cargo test --target $TARGET
     ;;
 esac
