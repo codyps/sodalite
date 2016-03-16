@@ -1,7 +1,7 @@
 /*
- * Use sodiumoxide to verify ourselves
+ * TODO: add test vectors
  */
-extern crate sodiumoxide;
+
 extern crate tweetnacl;
 extern crate rand;
 
@@ -31,7 +31,6 @@ fn hashblock() {
 
 #[test]
 fn hash() {
-    sodiumoxide::init(); 
 
     let mut rng = rand::thread_rng();
 
@@ -50,10 +49,6 @@ fn hash() {
     tweetnacl::crypto_hash_sha512(&mut hash2, &b);
 
     assert_eq!(&hash1[..], &hash2[..]);
-
-    let hash3 = sodiumoxide::crypto::hash::hash(&b);
-
-    assert_eq!(&hash1[..], &hash3.0[..]);
 }
 
 #[test]

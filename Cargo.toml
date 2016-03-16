@@ -11,5 +11,4 @@ repository = "https://github.com/jmesmon/sodalite.git"
 rand = "0.*"
 
 [dev-dependencies]
-sodiumoxide = "0.*"
 tweetnacl = { path = "tweetnacl", version = "0.*" }
