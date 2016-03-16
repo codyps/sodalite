@@ -26,6 +26,8 @@ if [ "$host" != "$TARGET" ]; then
   find src -name '*.rs' -type f -exec sed -i -e 's:\(//.\s*```\):\1 ignore,:g' \{\} \;
 fi
 
+cargo build --target "$TARGET" --verbose
+
 case "$TARGET" in
   # use an emulator to run the cross compiled binaries
   arm-unknown-linux-gnueabihf)
@@ -33,13 +35,9 @@ case "$TARGET" in
     cargo test --target "$TARGET" --no-run
 
     # run tests in emulator
-    find "target/$TARGET/debug" -maxdepth 1 -executable -type f -exec qemu-arm -L /usr/arm-linux-gnueabihf \{\} \;
-
-    # build the main executable
-    cargo build --target "$TARGET"
+    find "target/$TARGET/debug" -maxdepth 1 -executable -type f -fprintf /dev/stderr "test: %p" -print0 | xargs -0 qemu-arm -L /usr/arm-linux-gnueabihf
     ;;
   *)
-    cargo build --target $TARGET --verbose
     cargo test --target $TARGET
     ;;
 esac
