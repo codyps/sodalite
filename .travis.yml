@@ -90,10 +90,13 @@ matrix:
 
 install:
   - export PATH="$PATH:~/multirust/bin"
-  - bash ci/install.sh
+  - ci/install.sh
 
 script:
-  - bash ci/script.sh
+  - ci/script.sh
+
+after_success:
+  - ci/travis-doc-upload.sh
 
 notifications:
   email:

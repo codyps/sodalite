@@ -1,3 +1,4 @@
+#!/bin/bash
 # ex: sts=4 sw=4 ts=4 et
 # `script` phase: you usually build, test and generate docs in this phase
 
