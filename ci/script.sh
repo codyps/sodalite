@@ -1,5 +1,5 @@
 #!/bin/bash
-# ex: sts=4 sw=4 ts=4 et
+# ex: sts=2 sw=2 ts=2 et
 # `script` phase: you usually build, test and generate docs in this phase
 
 set -ex
@@ -23,7 +23,12 @@ esac
 
 # NOTE Workaround for rust-lang/rust#31907 - disable doc tests when cross compiling
 if [ "$host" != "$TARGET" ]; then
-  export TARGET_CC=$TARGET-gcc
+  if [ "$TRAVIS_OS_NAME" = osx ]; then
+    export TARGET_CC=cc
+  else
+    export TARGET_CC=$TARGET-gcc
+  fi
+
   if [ "$TRAVIS_OS_NAME" = "osx" ]; then
     brew install gnu-sed --default-names
   fi
