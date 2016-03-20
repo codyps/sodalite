@@ -2,7 +2,8 @@
 name = "sodalite"
 version = "0.1.0"
 authors = ["Cody P Schafer <dev@codyps.com>"]
-description = "Nothing Yet"
+description = "[tweet]NaCL in pure rust"
+keywords = [ "sodium", "nacl", "crypto" ]
 license = "AGPL-3.0"
 homepage = "https://github.com/jmesmon/sodalite"
 repository = "https://github.com/jmesmon/sodalite.git"
