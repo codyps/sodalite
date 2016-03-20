@@ -85,6 +85,8 @@ matrix:
       env: TARGET=arm-unknown-linux-gnueabihf CHANNEL=stable
     - os: linux
       env: TARGET=arm-unknown-linux-gnueabihf CHANNEL=nightly
+    - os: linux
+      env: TARGET=arm-unknown-linux-gnueabihf CHANNEL=beta
 
 install:
   - export PATH="$PATH:~/multirust/bin"

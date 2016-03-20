@@ -13,7 +13,6 @@ export PKG_CONFIG_ALLOW_CROSS=1
 case "$TRAVIS_OS_NAME" in
   linux)
     # without this, gcc-rs may try to do funny things and guess the name of CC
-    export TARGET_CC=gcc
     host=x86_64-unknown-linux-gnu
     ;;
   osx)
@@ -23,11 +22,15 @@ esac
 
 # NOTE Workaround for rust-lang/rust#31907 - disable doc tests when cross compiling
 if [ "$host" != "$TARGET" ]; then
+  export TARGET_CC=$TARGET-gcc
   if [ "$TRAVIS_OS_NAME" = "osx" ]; then
     brew install gnu-sed --default-names
   fi
 
   find src -name '*.rs' -type f -exec sed -i -e 's:\(//.\s*```\):\1 ignore,:g' \{\} \;
+else
+  # Otherwise gcc-rs may try to be "smart" and do something we don't want
+  export TARGET_CC=cc
 fi
 
 cargo build --target "$TARGET" --verbose
