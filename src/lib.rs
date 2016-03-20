@@ -12,10 +12,10 @@ type Gf = [i64;16];
 const GF0 : Gf = [0; 16];
 const GF1 : Gf = [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
 
-const _0 : [u8;16] = [0;16];
-const _9 : [u8;32] = [9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+const C_0 : [u8;16] = [0;16];
+const C_9 : [u8;32] = [9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
 
-const _121665 : Gf = [0xDB41,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+const C_121665 : Gf = [0xDB41,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
 const D: Gf = [0x78a3, 0x1359, 0x4dca, 0x75eb, 0xd8ab, 0x4141, 0x0a4d, 0x0070, 0xe898, 0x7779, 0x4079, 0x8cc7, 0xfe73, 0x2b6f, 0x6cee, 0x5203];
 const D2:Gf = [0xf159, 0x26b2, 0x9b94, 0xebd6, 0xb156, 0x8283, 0x149a, 0x00e0, 0xd130, 0xeef3, 0x80f2, 0x198e, 0xfce7, 0x56df, 0xd9dc, 0x2406];
 const X: Gf = [0xd51a, 0x8f25, 0x2d60, 0xc956, 0xa7b2, 0x9525, 0xc760, 0x692c, 0xdc5c, 0xfdd6, 0xe231, 0xc0a4, 0x53fe, 0xcd6e, 0x36d3, 0x2169];
@@ -606,7 +606,7 @@ pub fn crypto_scalarmult(q: &mut [u8;32], n: &[u8;32], p: &[u8;32])
         a = tmp;
         gf_square(&mut b,a);
         gf_sub(&mut c,d,f);
-        gf_mult(&mut a,c,_121665);
+        gf_mult(&mut a,c,C_121665);
         gf_add(&mut tmp,a,d);
         a = tmp;
         gf_mult(&mut tmp,c,a);
@@ -636,7 +636,7 @@ pub fn crypto_scalarmult(q: &mut [u8;32], n: &[u8;32], p: &[u8;32])
 
 pub fn crypto_scalarmult_base(q: &mut [u8;32], n: &[u8;32])
 {
-    crypto_scalarmult(q, n, &_9)
+    crypto_scalarmult(q, n, &C_9)
 }
 
 pub fn crypto_box_keypair(y: &mut[u8;32], x: &mut[u8;32])
@@ -650,7 +650,7 @@ pub fn crypto_box_beforenm(k: &mut[u8;32], y: &[u8;32], x: &[u8;32])
     /* TODO: uninit in tweet-nacl */
     let mut s = [0u8; 32];
     crypto_scalarmult(&mut s,x,y);
-    crypto_core_hsalsa20(k, &_0, &s, SIGMA)
+    crypto_core_hsalsa20(k, &C_0, &s, SIGMA)
 }
 
 pub fn crypto_box_afternm(c: &mut[u8], m: &[u8], n: &[u8;24], k: &[u8;32]) -> Result<(),()>
@@ -940,7 +940,8 @@ fn mod_l(r: &mut [u8;32], x: &mut [i64;64])
             carry = (x[j] + 128) >> 8;
             x[j] -= carry << 8;
         }
-        x[i - 12 - 13] += carry;
+        /* index is last value of @j */
+        x[i - 12] += carry;
         x[i] = 0;
     }
 
