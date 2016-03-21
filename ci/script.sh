@@ -20,7 +20,7 @@ if [ "$host" != "$TARGET" ]; then
   # Also try to use the host compiler if the arch has a 32vs64 bit differenct
   # FIXME: might also need to check that OS has a reasonable match
   if [ "$host_arch" != "$TARGET_ARCH" ] && \
-    ( [ "$host_arch" != x86_64 ] && [ "$TARGET_ARCH" != i686 ] ); then
+    ! ( [ "$host_arch" == x86_64 ] && [ "$TARGET_ARCH" == i686 ] ); then
     export TARGET_CC=$TARGET-gcc
   fi
 
