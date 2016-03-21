@@ -229,7 +229,11 @@ pub fn stream_salsa20(c: &mut [u8], n : &[u8;8], k: &[u8;32])
     stream_salsa20_xor(c, None, n, k)
 }
 
-pub fn stream(c: &mut [u8], n: &[u8;24], k: &[u8;32])
+pub const STREAM_NONCE_LEN : usize = 24;
+pub const STREAM_KEY_LEN : usize = 32;
+pub type StreamNonce = [u8;STREAM_NONCE_LEN];
+pub type StreamKey = [u8;STREAM_KEY_LEN];
+pub fn stream(c: &mut [u8], n: &StreamNonce, k: &StreamKey)
 {
     let mut s = [0u8; 32];
     core_hsalsa20(&mut s,index_16(&n[..]),k,SIGMA);
