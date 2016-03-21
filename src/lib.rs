@@ -240,7 +240,7 @@ pub fn stream(c: &mut [u8], n: &StreamNonce, k: &StreamKey)
     stream_salsa20(c,index_8(&n[16..]),&s)
 }
 
-pub fn stream_xor(c: &mut [u8], m: &[u8], n: &[u8;24], k: &[u8;32])
+pub fn stream_xor(c: &mut [u8], m: &[u8], n: &StreamNonce, k: &StreamKey)
 {
     let mut s = [0u8; 32];
     core_hsalsa20(&mut s,index_16(&n[..]),k,SIGMA);
@@ -262,7 +262,11 @@ const MINUSP : [u32;17] = [
 ];
 
 /* poly1305 */
-pub fn onetimeauth(out: &mut [u8;16], mut m: &[u8], k: &[u8;32])
+pub const ONETIMEAUTH_KEY_LEN : usize = 32;
+pub const ONETIMEAUTH_HASH_LEN : usize = 16;
+pub type OnetimeauthKey = [u8;ONETIMEAUTH_KEY_LEN];
+pub type OnetimeauthHash = [u8;ONETIMEAUTH_HASH_LEN];
+pub fn onetimeauth(out: &mut OnetimeauthHash, mut m: &[u8], k: &OnetimeauthKey)
 {
     /* FIXME: not zeroed in tweet-nacl */
     let mut x = [0u32;17];
@@ -345,14 +349,18 @@ pub fn onetimeauth(out: &mut [u8;16], mut m: &[u8], k: &[u8;32])
     }
 }
 
-pub fn onetimeauth_verify(h: &[u8;16], m: &[u8], k: &[u8;32]) -> isize /* int */
+pub fn onetimeauth_verify(h: &OnetimeauthHash, m: &[u8], k: &OnetimeauthKey) -> isize /* int */
 {
     let mut x = [0u8; 16];
     onetimeauth(&mut x,m,k);
     verify_16(h,&x)
 }
 
-pub fn secretbox(c: &mut [u8], m: &[u8], n: &[u8;24], k: &[u8;32]) -> Result<(),()>
+pub const SECRETBOX_KEY_LEN : usize = 32;
+pub const SECRETBOX_NONCE_LEN : usize = 24;
+pub type SecretboxKey = [u8;SECRETBOX_KEY_LEN];
+pub type SecretboxNonce = [u8;SECRETBOX_NONCE_LEN];
+pub fn secretbox(c: &mut [u8], m: &[u8], n: &SecretboxNonce, k: &SecretboxKey) -> Result<(),()>
 {
     assert_eq!(c.len(), m.len());
     /* first 32 bytes must be zero */
@@ -374,7 +382,7 @@ pub fn secretbox(c: &mut [u8], m: &[u8], n: &[u8;24], k: &[u8;32]) -> Result<(),
 /*
  * c: &[u8:d]
  */
-pub fn secretbox_open(m: &mut [u8], c: &[u8], n: &[u8;24], k: &[u8;32]) -> Result<(),()>
+pub fn secretbox_open(m: &mut [u8], c: &[u8], n: &SecretboxNonce, k: &SecretboxKey) -> Result<(),()>
 {
     assert_eq!(m.len(), c.len());
     if c.len() < 32 {
@@ -562,7 +570,8 @@ fn pow2523(o: &mut Gf, i: Gf)
     }
 }
 
-pub fn scalarmult(q: &mut [u8;32], n: &[u8;32], p: &[u8;32])
+/* XXX: public in tweetnacl */
+fn scalarmult(q: &mut [u8;32], n: &[u8;32], p: &[u8;32])
 {
     let mut z = *n;
     /* TODO: not init in tweet-nacl */
@@ -643,17 +652,21 @@ pub fn scalarmult_base(q: &mut [u8;32], n: &[u8;32])
     scalarmult(q, n, &C_9)
 }
 
-pub fn box_keypair(y: &mut[u8;32], x: &mut[u8;32])
+pub const BOX_SECRET_KEY_LEN : usize = 32;
+pub const BOX_PUBLIC_KEY_LEN : usize = 32;
+pub type BoxPublicKey = [u8; BOX_PUBLIC_KEY_LEN];
+pub type BoxSecretKey = [u8; BOX_SECRET_KEY_LEN];
+pub fn box_keypair(pk: &mut BoxPublicKey, sk: &mut BoxSecretKey)
 {
-    randombytes(&mut x[..32]);
-    scalarmult_base(y,x)
+    randombytes(&mut sk[..32]);
+    scalarmult_base(pk,sk)
 }
 
-pub fn box_beforenm(k: &mut[u8;32], y: &[u8;32], x: &[u8;32])
+pub fn box_beforenm(k: &mut[u8;32], pk: &BoxPublicKey, sk: &BoxSecretKey)
 {
     /* TODO: uninit in tweet-nacl */
     let mut s = [0u8; 32];
-    scalarmult(&mut s,x,y);
+    scalarmult(&mut s,sk,pk);
     core_hsalsa20(k, &C_0, &s, SIGMA)
 }
 
@@ -667,12 +680,12 @@ pub fn box_open_afternm(m: &mut[u8], c: &[u8], n: &[u8;24], k: &[u8;32]) -> Resu
     secretbox_open(m,c,n,k)
 }
 
-pub fn box_(c: &mut [u8], m: &[u8], n: &[u8;24], y: &[u8;32], x: &[u8;32]) -> Result<(),()>
+pub fn box_(c: &mut [u8], m: &[u8], n: &[u8;24], pk: &BoxPublicKey, sk: &BoxSecretKey) -> Result<(),()>
 {
     assert_eq!(&m[..32], &[0u8;32]);
     /* FIXME: uninit in tweet-nacl */
     let mut k = [0u8; 32];
-    box_beforenm(&mut k,y,x);
+    box_beforenm(&mut k,pk,sk);
     box_afternm(c,m,n, &k)
 }
 
@@ -778,6 +791,7 @@ const IV:[u8; 64] = [
     0x5b,0xe0,0xcd,0x19,0x13,0x7e,0x21,0x79
 ];
 
+/* sha512 */
 pub fn hash(out: &mut [u8], mut m: &[u8])
 {
     let mut h = IV;
@@ -901,7 +915,11 @@ fn scalarbase(p: &mut [Gf;4], s: &[u8;32])
     inner_scalarmult(p, &mut q,s);
 }
 
-pub fn sign_keypair_seed(pk: &mut [u8;32], sk: &mut [u8;64], seed: &[u8;32])
+pub const SIGN_PUBLIC_KEY_LEN : usize = 32;
+pub const SIGN_SECRET_KEY_LEN : usize = 64;
+pub type SignPublicKey = [u8;SIGN_PUBLIC_KEY_LEN];
+pub type SignSecretKey = [u8;SIGN_SECRET_KEY_LEN];
+pub fn sign_keypair_seed(pk: &mut SignPublicKey, sk: &mut SignSecretKey, seed: &[u8;32])
 {
     /* FIXME: uninit in tweet-nacl */
     let mut d = [0u8; 64];
@@ -921,7 +939,7 @@ pub fn sign_keypair_seed(pk: &mut [u8;32], sk: &mut [u8;64], seed: &[u8;32])
     }
 }
 
-pub fn sign_keypair(pk: &mut [u8;32], sk: &mut [u8;64])
+pub fn sign_keypair(pk: &mut SignPublicKey, sk: &mut SignSecretKey)
 {
     let mut seed = [0u8;32];
     randombytes(&mut seed);
@@ -980,7 +998,7 @@ fn reduce(r: &mut [u8;64])
     mod_l(index_mut_32(r), &mut x);
 }
 
-pub fn sign(sm: &mut [u8], m: &[u8], sk: &[u8;64]) -> usize
+pub fn sign(sm: &mut [u8], m: &[u8], sk: &SignSecretKey) -> usize
 {
     assert_eq!(sm.len(), m.len() + 64);
 
@@ -1096,7 +1114,7 @@ fn unpackneg(r: &mut [Gf;4], p: &[u8; 32]) -> isize /* int */
     return 0;
 }
 
-pub fn sign_open(m: &mut [u8], sm : &[u8], pk: &[u8;32]) -> Result<usize, ()>
+pub fn sign_open(m: &mut [u8], sm : &[u8], pk: &SignPublicKey) -> Result<usize, ()>
 {
     assert_eq!(m.len(), sm.len());
     let mut t = [0u8;32];
