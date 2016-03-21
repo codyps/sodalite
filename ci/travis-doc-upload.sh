@@ -38,4 +38,4 @@ mkdir -p "$(dirname "$PROJECT_NAME")"
 mv ../target/$TARGET/doc "$PROJECT_NAME"
 git add -A "$PROJECT_NAME"
 git commit -qm "doc upload for $PROJECT_NAME ($TRAVIS_REPO_SLUG)"
-git push -q origin gh-pages
+git push -q origin HEAD:refs/heads/gh-pages
