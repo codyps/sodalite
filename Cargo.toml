@@ -6,6 +6,7 @@ description = "Nothing Yet"
 license = "AGPL-3.0"
 homepage = "https://github.com/jmesmon/sodalite"
 repository = "https://github.com/jmesmon/sodalite.git"
+docs = "http://codyps.com/docs/sodalite/x86_64-unknown-linux-musl/sodalite/"
 
 [dependencies]
 rand = "0.*"
