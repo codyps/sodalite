@@ -1,13 +1,15 @@
 [package]
 name = "sodalite"
-version = "0.1.2"
+version = "0.1.5"
 authors = ["Cody P Schafer <dev@codyps.com>"]
 description = "Tweetnacl in Pure Rust"
 license = "AGPL-3.0"
 homepage = "https://github.com/jmesmon/sodalite"
 repository = "https://github.com/jmesmon/sodalite.git"
-docs = "http://codyps.com/docs/sodalite/x86_64-unknown-linux-musl/sodalite/"
+documentation = "http://codyps.com/docs/sodalite/x86_64-unknown-linux-musl/sodalite/"
 keywords = [ "sodium", "crypto", "nacl" ]
+readme = "README.md"
+include = ["Cargo.toml", "src/*.rs" ]
 
 [dependencies]
 rand = "0.*"
