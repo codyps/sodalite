@@ -20,7 +20,7 @@ fn hashblock() {
     rng.fill_bytes(&mut b);
 
     let mut hash1 = [0u8;64];
-    let v1 = super::crypto_hashblocks(&mut hash1, &b);
+    let v1 = super::hashblocks(&mut hash1, &b);
 
     let mut hash2 = [0u8;64];
     let v2 = tweetnacl::crypto_hashblocks_sha512(&mut hash2, &b);
@@ -44,7 +44,7 @@ fn hash() {
     rng.fill_bytes(&mut b);
 
     let mut hash1 = [0u8;64];
-    super::crypto_hash(&mut hash1, &b);
+    super::hash(&mut hash1, &b);
     let mut hash2 = [0u8;64];
     tweetnacl::crypto_hash_sha512(&mut hash2, &b);
 
@@ -65,7 +65,7 @@ fn  core_salsa20() {
     rng.fill_bytes(&mut c);
 
     let mut out1 = [0u8;64];
-    super::crypto_core_salsa20(&mut out1, &inx, &k, &c);
+    super::core_salsa20(&mut out1, &inx, &k, &c);
     let mut out2 = [0u8;64];
     tweetnacl::crypto_core_salsa20(&mut out2, &inx, &k, &c);
     assert_eq!(&out1[..], &out2[..]);
@@ -85,7 +85,7 @@ fn  core_hsalsa20() {
     rng.fill_bytes(&mut c);
 
     let mut out1 = [0u8;32];
-    super::crypto_core_hsalsa20(&mut out1, &inx, &k, &c);
+    super::core_hsalsa20(&mut out1, &inx, &k, &c);
     let mut out2 = [0u8;32];
     tweetnacl::crypto_core_hsalsa20(&mut out2, &inx, &k, &c);
     assert_eq!(&out1[..], &out2[..]);
@@ -108,7 +108,7 @@ fn stream_salsa20_xor() {
     let b = rng.gen_range(0, 1024);
 
     let mut out1 = vec![0u8;b];
-    super::crypto_stream_salsa20_xor(&mut out1, None, &n, &c);
+    super::stream_salsa20_xor(&mut out1, None, &n, &c);
     let mut out2 = vec![0u8;b];
     tweetnacl::crypto_stream_salsa20_xor(&mut out2, None, &n, &c);
     assert_eq!(&out1[..], &out2[..]);
@@ -128,12 +128,12 @@ fn onetimeauth() {
     rng.fill_bytes(&mut k);
 
     let mut out1 = [0u8;16];
-    super::crypto_onetimeauth(&mut out1, &m, &k);
+    super::onetimeauth(&mut out1, &m, &k);
     let mut out2 = [0u8;16];
     tweetnacl::crypto_onetimeauth(&mut out2, &m, &k);
     assert_eq!(&out1[..], &out2[..]);
 
-    let r1 = super::crypto_onetimeauth_verify(&out1, &m, &k);
+    let r1 = super::onetimeauth_verify(&out1, &m, &k);
     let r2 = tweetnacl::crypto_onetimeauth_verify(&out2, &m, &k);
     assert_eq!(r1, r2);
 }
@@ -155,13 +155,13 @@ fn stream() {
     rng.fill_bytes(&mut k);
 
     let mut out1 = vec![0u8;len];
-    super::crypto_stream(&mut out1, &n, &k);
+    super::stream(&mut out1, &n, &k);
     let mut out2 = vec![0u8;len];
     tweetnacl::crypto_stream(&mut out2, &n, &k);
     assert_eq!(&out1[..], &out2[..]);
 
     let mut out1 = vec![0u8;len];
-    super::crypto_stream_xor(&mut out1, &m, &n, &k);
+    super::stream_xor(&mut out1, &m, &n, &k);
     let mut out2 = vec![0u8;len];
     tweetnacl::crypto_stream_xor(&mut out2, &m, &n, &k);
     assert_eq!(&out1[..], &out2[..]);
@@ -175,7 +175,7 @@ fn scalarmult() {
     rng.fill_bytes(&mut p);
 
     let mut q1 = [0u8;32];
-    super::crypto_scalarmult_base(&mut q1, &p);
+    super::scalarmult_base(&mut q1, &p);
     let mut q2 = [0u8;32];
     tweetnacl::crypto_scalarmult_base(&mut q2, &p);
     assert_eq!(&q1[..], &q2[..]);
@@ -198,16 +198,16 @@ fn box_() {
     let mut pk = [0u8;32];
     let mut sk = [0u8;32];
 
-    super::crypto_box_keypair(&mut pk, &mut sk);
+    super::box_keypair(&mut pk, &mut sk);
 
     let mut out1 = vec![0u8;len];
-    super::crypto_box(&mut out1, &m, &n, &pk, &sk).unwrap();
+    super::box_(&mut out1, &m, &n, &pk, &sk).unwrap();
     let mut out2 = vec![0u8;len];
     tweetnacl::crypto_box(&mut out2, &m, &n, &pk, &sk).unwrap();
     assert_eq!(&out1[..], &out2[..]);
 
     let mut dec1 = vec![0u8;len];
-    super::crypto_box_open(&mut dec1, &out1, &n, &pk, &sk).unwrap();
+    super::box_open(&mut dec1, &out1, &n, &pk, &sk).unwrap();
     let mut dec2 = vec![0u8;len];
     tweetnacl::crypto_box_open(&mut dec2, &out2, &n, &pk, &sk).unwrap();
     assert_eq!(dec1, dec2);
@@ -236,13 +236,13 @@ fn secretbox() {
     rng.fill_bytes(&mut k);
 
     let mut out1 = vec![0u8;len];
-    super::crypto_secretbox(&mut out1, &m, &n, &k).unwrap();
+    super::secretbox(&mut out1, &m, &n, &k).unwrap();
     let mut out2 = vec![0u8;len];
     tweetnacl::crypto_secretbox(&mut out2, &m, &n, &k).unwrap();
     assert_eq!(&out1[..], &out2[..]);
 
     let mut dec1 = vec![0u8;len];
-    super::crypto_secretbox_open(&mut dec1, &out1, &n, &k).unwrap();
+    super::secretbox_open(&mut dec1, &out1, &n, &k).unwrap();
     let mut dec2 = vec![0u8;len];
     tweetnacl::crypto_secretbox_open(&mut dec2, &out2, &n, &k).unwrap();
     assert_eq!(dec1, dec2);
@@ -271,7 +271,7 @@ fn sign() {
     let mut seed = [0u8;32];
     rng.fill_bytes(&mut seed);
 
-    super::crypto_sign_keypair_seed(&mut pk, &mut sk, &seed);
+    super::sign_keypair_seed(&mut pk, &mut sk, &seed);
     tweetnacl::crypto_sign_keypair_seed(&mut pk2, &mut sk2, &seed);
 
     assert_eq!(&pk[..], &pk2[..]);
@@ -279,7 +279,7 @@ fn sign() {
 
     let n = len + 64;
     let mut out1 = vec![0u8;n];
-    let v = super::crypto_sign(&mut out1, &m, &sk);
+    let v = super::sign(&mut out1, &m, &sk);
     out1.truncate(v);
     let mut out2 = vec![0u8;n];
     let v = tweetnacl::crypto_sign(&mut out2, &m, &sk);
@@ -288,7 +288,7 @@ fn sign() {
     assert_eq!(out1, out2);
 
     let mut dec1 = vec![0u8;n];
-    let v = super::crypto_sign_open(&mut dec1, &out1, &pk).unwrap();
+    let v = super::sign_open(&mut dec1, &out1, &pk).unwrap();
     dec1.truncate(v);
     let mut dec2 = vec![0u8;n];
     let v = tweetnacl::crypto_sign_open(&mut dec2, &out2, &pk).unwrap();

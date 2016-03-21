@@ -79,12 +79,12 @@ fn vn(x: &[u8], y: &[u8]) -> isize
     ((W(1) & ((W(d) - W(1)) >> 8)) - W(1)).0 as isize
 }
 
-pub fn crypto_verify_16(x: &[u8;16], y: &[u8;16]) -> isize
+pub fn verify_16(x: &[u8;16], y: &[u8;16]) -> isize
 {
     vn(&x[..], &y[..])
 }
 
-pub fn crypto_verify_32(x: &[u8;32], y: &[u8;32]) -> isize
+pub fn verify_32(x: &[u8;32], y: &[u8;32]) -> isize
 {
     vn(&x[..], &y[..])
 }
@@ -165,23 +165,23 @@ fn core(out: &mut[u8], inx: &[u8;16], k: &[u8;32], c: &[u8;16], h: bool)
     }
 }
 
-pub fn crypto_core_salsa20(out: &mut [u8;64], inx: &[u8;16], k: &[u8;32], c: &[u8;16])
+pub fn core_salsa20(out: &mut [u8;64], inx: &[u8;16], k: &[u8;32], c: &[u8;16])
 {
     core(out,inx,k,c,false);
 }
 
-pub fn crypto_core_hsalsa20(out: &mut [u8;32], inx: &[u8;16], k: &[u8;32], c: &[u8;16])
+pub fn core_hsalsa20(out: &mut [u8;32], inx: &[u8;16], k: &[u8;32], c: &[u8;16])
 {
     core(out,inx,k,c,true);
 }
 
 static SIGMA : &'static [u8;16] = b"expand 32-byte k";
 
-pub fn crypto_stream_salsa20_xor(mut c: &mut [u8], mut m: Option<&[u8]>, n: &[u8;8], k: &[u8;32])
+pub fn stream_salsa20_xor(mut c: &mut [u8], mut m: Option<&[u8]>, n: &[u8;8], k: &[u8;32])
 {
     let mut z = [0u8;16];
 
-    /* XXX: not zeroed in tweet-nacl, provided by call to crypto_core_salsa20 */
+    /* XXX: not zeroed in tweet-nacl, provided by call to core_salsa20 */
     let mut x = [0u8;64];
     m.map(|x| assert_eq!(x.len(), c.len()));
 
@@ -194,7 +194,7 @@ pub fn crypto_stream_salsa20_xor(mut c: &mut [u8], mut m: Option<&[u8]>, n: &[u8
     }
 
     while c.len() >= 64 {
-        crypto_core_salsa20(&mut x, &mut z,k,SIGMA);
+        core_salsa20(&mut x, &mut z,k,SIGMA);
         for i in 0..64 {
             c[i] = match m {
               Some(m) => m[i],
@@ -214,7 +214,7 @@ pub fn crypto_stream_salsa20_xor(mut c: &mut [u8], mut m: Option<&[u8]>, n: &[u8
     }
 
     if c.len() != 0 {
-        crypto_core_salsa20(&mut x, &mut z,k,SIGMA);
+        core_salsa20(&mut x, &mut z,k,SIGMA);
         for i in 0..c.len() {
           c[i] = match m {
             Some(m) => m[i],
@@ -224,23 +224,23 @@ pub fn crypto_stream_salsa20_xor(mut c: &mut [u8], mut m: Option<&[u8]>, n: &[u8
     }
 }
 
-pub fn crypto_stream_salsa20(c: &mut [u8], n : &[u8;8], k: &[u8;32])
+pub fn stream_salsa20(c: &mut [u8], n : &[u8;8], k: &[u8;32])
 {
-    crypto_stream_salsa20_xor(c, None, n, k)
+    stream_salsa20_xor(c, None, n, k)
 }
 
-pub fn crypto_stream(c: &mut [u8], n: &[u8;24], k: &[u8;32])
+pub fn stream(c: &mut [u8], n: &[u8;24], k: &[u8;32])
 {
     let mut s = [0u8; 32];
-    crypto_core_hsalsa20(&mut s,index_16(&n[..]),k,SIGMA);
-    crypto_stream_salsa20(c,index_8(&n[16..]),&s)
+    core_hsalsa20(&mut s,index_16(&n[..]),k,SIGMA);
+    stream_salsa20(c,index_8(&n[16..]),&s)
 }
 
-pub fn crypto_stream_xor(c: &mut [u8], m: &[u8], n: &[u8;24], k: &[u8;32])
+pub fn stream_xor(c: &mut [u8], m: &[u8], n: &[u8;24], k: &[u8;32])
 {
     let mut s = [0u8; 32];
-    crypto_core_hsalsa20(&mut s,index_16(&n[..]),k,SIGMA);
-    crypto_stream_salsa20_xor(c,Some(m),index_8(&n[16..]), &s)
+    core_hsalsa20(&mut s,index_16(&n[..]),k,SIGMA);
+    stream_salsa20_xor(c,Some(m),index_8(&n[16..]), &s)
 }
 
 fn add1305(h: &mut [u32; 17], c: &[u32; 17])
@@ -258,7 +258,7 @@ const MINUSP : [u32;17] = [
 ];
 
 /* poly1305 */
-pub fn crypto_onetimeauth(out: &mut [u8;16], mut m: &[u8], k: &[u8;32])
+pub fn onetimeauth(out: &mut [u8;16], mut m: &[u8], k: &[u8;32])
 {
     /* FIXME: not zeroed in tweet-nacl */
     let mut x = [0u32;17];
@@ -341,25 +341,25 @@ pub fn crypto_onetimeauth(out: &mut [u8;16], mut m: &[u8], k: &[u8;32])
     }
 }
 
-pub fn crypto_onetimeauth_verify(h: &[u8;16], m: &[u8], k: &[u8;32]) -> isize /* int */
+pub fn onetimeauth_verify(h: &[u8;16], m: &[u8], k: &[u8;32]) -> isize /* int */
 {
     let mut x = [0u8; 16];
-    crypto_onetimeauth(&mut x,m,k);
-    crypto_verify_16(h,&x)
+    onetimeauth(&mut x,m,k);
+    verify_16(h,&x)
 }
 
-pub fn crypto_secretbox(c: &mut [u8], m: &[u8], n: &[u8;24], k: &[u8;32]) -> Result<(),()>
+pub fn secretbox(c: &mut [u8], m: &[u8], n: &[u8;24], k: &[u8;32]) -> Result<(),()>
 {
     assert_eq!(c.len(), m.len());
     /* first 32 bytes must be zero */
     assert_eq!(&m[0..32], &[0u8;32]);
 
-    crypto_stream_xor(c,m,n,k);
+    stream_xor(c,m,n,k);
     let mut o = [0u8;16];
     {
         /* XXX: we avoid aliasing to make rust happy at the cost of an extra copy via @o */
         let (c_k, c_m) = c.split_at(32);
-        crypto_onetimeauth(&mut o, c_m, index_32(c_k));
+        onetimeauth(&mut o, c_m, index_32(c_k));
     }
     *index_mut_16(&mut c[16..32]) = o;
     *index_mut_16(c) = [0u8;16];
@@ -370,18 +370,18 @@ pub fn crypto_secretbox(c: &mut [u8], m: &[u8], n: &[u8;24], k: &[u8;32]) -> Res
 /*
  * c: &[u8:d]
  */
-pub fn crypto_secretbox_open(m: &mut [u8], c: &[u8], n: &[u8;24], k: &[u8;32]) -> Result<(),()>
+pub fn secretbox_open(m: &mut [u8], c: &[u8], n: &[u8;24], k: &[u8;32]) -> Result<(),()>
 {
     assert_eq!(m.len(), c.len());
     if c.len() < 32 {
         return Err(());
     }
     let mut x = [0u8; 32];
-    crypto_stream(&mut x,n,k);
-    if crypto_onetimeauth_verify(index_16(&c[16..]), &c[32..], &x) != 0 {
+    stream(&mut x,n,k);
+    if onetimeauth_verify(index_16(&c[16..]), &c[32..], &x) != 0 {
         return Err(());
     }
-    crypto_stream_xor(m,c,n,k);
+    stream_xor(m,c,n,k);
     for i in 0..32 {
         m[i] = 0;
     }
@@ -457,7 +457,7 @@ fn neq25519(a: Gf, b: Gf) -> bool
 
     pack25519(&mut c,a);
     pack25519(&mut d,b);
-    crypto_verify_32(&c, &d) != 0
+    verify_32(&c, &d) != 0
 }
 
 fn par25519(a: Gf) -> u8
@@ -558,7 +558,7 @@ fn pow2523(o: &mut Gf, i: Gf)
     }
 }
 
-pub fn crypto_scalarmult(q: &mut [u8;32], n: &[u8;32], p: &[u8;32])
+pub fn scalarmult(q: &mut [u8;32], n: &[u8;32], p: &[u8;32])
 {
     let mut z = *n;
     /* TODO: not init in tweet-nacl */
@@ -634,51 +634,51 @@ pub fn crypto_scalarmult(q: &mut [u8;32], n: &[u8;32], p: &[u8;32])
     pack25519(q, *index_16(&x[16..]));
 }
 
-pub fn crypto_scalarmult_base(q: &mut [u8;32], n: &[u8;32])
+pub fn scalarmult_base(q: &mut [u8;32], n: &[u8;32])
 {
-    crypto_scalarmult(q, n, &C_9)
+    scalarmult(q, n, &C_9)
 }
 
-pub fn crypto_box_keypair(y: &mut[u8;32], x: &mut[u8;32])
+pub fn box_keypair(y: &mut[u8;32], x: &mut[u8;32])
 {
     randombytes(&mut x[..32]);
-    crypto_scalarmult_base(y,x)
+    scalarmult_base(y,x)
 }
 
-pub fn crypto_box_beforenm(k: &mut[u8;32], y: &[u8;32], x: &[u8;32])
+pub fn box_beforenm(k: &mut[u8;32], y: &[u8;32], x: &[u8;32])
 {
     /* TODO: uninit in tweet-nacl */
     let mut s = [0u8; 32];
-    crypto_scalarmult(&mut s,x,y);
-    crypto_core_hsalsa20(k, &C_0, &s, SIGMA)
+    scalarmult(&mut s,x,y);
+    core_hsalsa20(k, &C_0, &s, SIGMA)
 }
 
-pub fn crypto_box_afternm(c: &mut[u8], m: &[u8], n: &[u8;24], k: &[u8;32]) -> Result<(),()>
+pub fn box_afternm(c: &mut[u8], m: &[u8], n: &[u8;24], k: &[u8;32]) -> Result<(),()>
 {
-    crypto_secretbox(c,m,n,k)
+    secretbox(c,m,n,k)
 }
 
-pub fn crypto_box_open_afternm(m: &mut[u8], c: &[u8], n: &[u8;24], k: &[u8;32]) -> Result<(),()>
+pub fn box_open_afternm(m: &mut[u8], c: &[u8], n: &[u8;24], k: &[u8;32]) -> Result<(),()>
 {
-    crypto_secretbox_open(m,c,n,k)
+    secretbox_open(m,c,n,k)
 }
 
-pub fn crypto_box(c: &mut [u8], m: &[u8], n: &[u8;24], y: &[u8;32], x: &[u8;32]) -> Result<(),()>
+pub fn box_(c: &mut [u8], m: &[u8], n: &[u8;24], y: &[u8;32], x: &[u8;32]) -> Result<(),()>
 {
     assert_eq!(&m[..32], &[0u8;32]);
     /* FIXME: uninit in tweet-nacl */
     let mut k = [0u8; 32];
-    crypto_box_beforenm(&mut k,y,x);
-    crypto_box_afternm(c,m,n, &k)
+    box_beforenm(&mut k,y,x);
+    box_afternm(c,m,n, &k)
 }
 
-pub fn crypto_box_open(m : &mut [u8], c: &[u8], n: &[u8;24], y: &[u8;32], x: &[u8;32]) -> Result<(),()>
+pub fn box_open(m : &mut [u8], c: &[u8], n: &[u8;24], y: &[u8;32], x: &[u8;32]) -> Result<(),()>
 {
     assert_eq!(&c[..16], &[0u8;16]);
     /* FIXME: k was not zeroed */
     let mut k = [0u8; 32];
-    crypto_box_beforenm(&mut k,y,x);
-    crypto_box_open_afternm(m,c,n, &k)
+    box_beforenm(&mut k,y,x);
+    box_open_afternm(m,c,n, &k)
 }
 
 fn r(x: W<u64>, c: usize) -> W<u64> { (x >> c) | (x << (64 - c)) }
@@ -712,7 +712,7 @@ const K : [u64;80] = [
     0x4cc5d4becb3e42b6, 0x597f299cfc657e2a, 0x5fcb6fab3ad6faec, 0x6c44198c4a475817
 ];
 
-fn crypto_hashblocks(x: &mut[u8], mut m: &[u8]) -> usize
+fn hashblocks(x: &mut[u8], mut m: &[u8]) -> usize
 {
     /* XXX: all uninit in tweet-nacl */
     let mut z = [W(0u64);8];
@@ -774,7 +774,7 @@ const IV:[u8; 64] = [
     0x5b,0xe0,0xcd,0x19,0x13,0x7e,0x21,0x79
 ];
 
-pub fn crypto_hash(out: &mut [u8], mut m: &[u8])
+pub fn hash(out: &mut [u8], mut m: &[u8])
 {
     let mut h = IV;
 
@@ -782,7 +782,7 @@ pub fn crypto_hash(out: &mut [u8], mut m: &[u8])
      * */
     let b = m.len() as u64;
 
-    crypto_hashblocks(&mut h, m);
+    hashblocks(&mut h, m);
     // slice m to the last 'new_len' bytes
     let new_len = m.len() & 127;
     let s = m.len() - new_len;
@@ -801,7 +801,7 @@ pub fn crypto_hash(out: &mut [u8], mut m: &[u8])
     /* FIXME: check cast to u64 */
     let l = x.len() - 8;
     ts64(index_mut_8(&mut x[l..]), (b<<3) as u64);
-    crypto_hashblocks(&mut h, &x);
+    hashblocks(&mut h, &x);
 
     for i in 0..64 {
         out[i] = h[i];
@@ -868,7 +868,7 @@ fn pack(r: &mut [u8;32], p: &[Gf;4])
     r[31] ^= par25519(tx) << 7;
 }
 
-fn scalarmult(p: &mut [Gf;4], q: &mut [Gf;4], s: &[u8;32])
+fn inner_scalarmult(p: &mut [Gf;4], q: &mut [Gf;4], s: &[u8;32])
 {
     set25519(&mut p[0],GF0);
     set25519(&mut p[1],GF1);
@@ -894,17 +894,17 @@ fn scalarbase(p: &mut [Gf;4], s: &[u8;32])
     set25519(&mut q[1],Y);
     set25519(&mut q[2],GF1);
     gf_mult(&mut q[3],X,Y);
-    scalarmult(p, &mut q,s);
+    inner_scalarmult(p, &mut q,s);
 }
 
-pub fn crypto_sign_keypair_seed(pk: &mut [u8;32], sk: &mut [u8;64], seed: &[u8;32])
+pub fn sign_keypair_seed(pk: &mut [u8;32], sk: &mut [u8;64], seed: &[u8;32])
 {
     /* FIXME: uninit in tweet-nacl */
     let mut d = [0u8; 64];
     let mut p = [GF0;4];
 
     *index_mut_32(sk) = *seed;
-    crypto_hash(&mut d, &sk[..32]);
+    hash(&mut d, &sk[..32]);
     d[0] &= 248;
     d[31] &= 127;
     d[31] |= 64;
@@ -917,11 +917,11 @@ pub fn crypto_sign_keypair_seed(pk: &mut [u8;32], sk: &mut [u8;64], seed: &[u8;3
     }
 }
 
-pub fn crypto_sign_keypair(pk: &mut [u8;32], sk: &mut [u8;64])
+pub fn sign_keypair(pk: &mut [u8;32], sk: &mut [u8;64])
 {
     let mut seed = [0u8;32];
     randombytes(&mut seed);
-    crypto_sign_keypair_seed(pk, sk, &seed);
+    sign_keypair_seed(pk, sk, &seed);
 }
 
 const L: [u64; 32] = [0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c, 0xf7, 0xa2, 0xde, 0xf9, 0xde, 0x14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x10];
@@ -976,7 +976,7 @@ fn reduce(r: &mut [u8;64])
     mod_l(index_mut_32(r), &mut x);
 }
 
-pub fn crypto_sign(sm: &mut [u8], m: &[u8], sk: &[u8;64]) -> usize
+pub fn sign(sm: &mut [u8], m: &[u8], sk: &[u8;64]) -> usize
 {
     assert_eq!(sm.len(), m.len() + 64);
 
@@ -987,7 +987,7 @@ pub fn crypto_sign(sm: &mut [u8], m: &[u8], sk: &[u8;64]) -> usize
     let mut p = [GF0; 4];
     /* } */
 
-    crypto_hash(&mut d, &sk[..32]);
+    hash(&mut d, &sk[..32]);
     d[0] &= 248;
     d[31] &= 127;
     d[31] |= 64;
@@ -999,7 +999,7 @@ pub fn crypto_sign(sm: &mut [u8], m: &[u8], sk: &[u8;64]) -> usize
         sm[32 + i] = d[32 + i];
     }
 
-    crypto_hash(&mut r, &sm[32..][..m.len()+32]);
+    hash(&mut r, &sm[32..][..m.len()+32]);
     reduce(&mut r);
     scalarbase(&mut p, index_32(&r));
     pack(index_mut_32(sm), &p);
@@ -1007,7 +1007,7 @@ pub fn crypto_sign(sm: &mut [u8], m: &[u8], sk: &[u8;64]) -> usize
     for i in 0..32 {
         sm[i+32] = sk[i+32];
     }
-    crypto_hash(&mut h,&sm[..m.len() + 64]);
+    hash(&mut h,&sm[..m.len() + 64]);
     reduce(&mut h);
 
     let mut x = [0i64; 64];
@@ -1092,7 +1092,7 @@ fn unpackneg(r: &mut [Gf;4], p: &[u8; 32]) -> isize /* int */
     return 0;
 }
 
-pub fn crypto_sign_open(m: &mut [u8], sm : &[u8], pk: &[u8;32]) -> Result<usize, ()>
+pub fn sign_open(m: &mut [u8], sm : &[u8], pk: &[u8;32]) -> Result<usize, ()>
 {
     assert_eq!(m.len(), sm.len());
     let mut t = [0u8;32];
@@ -1116,9 +1116,9 @@ pub fn crypto_sign_open(m: &mut [u8], sm : &[u8], pk: &[u8;32]) -> Result<usize,
     for i in 0..32 {
         m[i+32] = pk[i];
     }
-    crypto_hash(&mut h, &m[..sm.len()]);
+    hash(&mut h, &m[..sm.len()]);
     reduce(&mut h);
-    scalarmult(&mut p, &mut q, index_32(&h));
+    inner_scalarmult(&mut p, &mut q, index_32(&h));
 
     scalarbase(&mut q, index_32(&sm[32..]));
     add(&mut p, &q);
@@ -1126,8 +1126,8 @@ pub fn crypto_sign_open(m: &mut [u8], sm : &[u8], pk: &[u8;32]) -> Result<usize,
 
 
     let n = sm.len() - 64;
-    /* TODO: check if crypto_verify_32 should return a bool */
-    if crypto_verify_32(index_32(sm), &t) != 0 {
+    /* TODO: check if verify_32 should return a bool */
+    if verify_32(index_32(sm), &t) != 0 {
         for i in 0..n {
             m[i] = 0;
         }
