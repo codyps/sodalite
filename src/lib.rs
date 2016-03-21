@@ -681,7 +681,7 @@ pub fn crypto_box_open(m : &mut [u8], c: &[u8], n: &[u8;24], y: &[u8;32], x: &[u
     crypto_box_open_afternm(m,c,n, &k)
 }
 
-fn r(x: W<u64>, c: usize) -> W<u64> { (x >> c) | (x << (64 - c)) } 
+fn r(x: W<u64>, c: usize) -> W<u64> { (x >> c) | (x << (64 - c)) }
 fn ch(x: W<u64>, y: W<u64>, z: W<u64>) -> W<u64> { (x & y) ^ (!x & z) }
 fn maj(x: W<u64>, y: W<u64>, z: W<u64>) -> W<u64> { (x & y) ^ (x & z) ^ (y & z) }
 fn upper_sigma0(x: W<u64>) -> W<u64> { r(x,28) ^ r(x,34) ^ r(x,39) }
@@ -776,7 +776,6 @@ const IV:[u8; 64] = [
 
 pub fn crypto_hash(out: &mut [u8], mut m: &[u8])
 {
-    /* XXX: uninit in tweet-nacl */
     let mut h = IV;
 
     /* XXX: idealy, we'd either cast (if usize < u64) or keep the existing type (if usize >= u64)
