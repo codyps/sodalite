@@ -26,21 +26,21 @@ matrix:
     - os: osx
       env: TARGET_ARCH=i686 TARGET_VENDOR=-apple TARGET_OS=darwin CHANNEL=stable
     - os: linux
-      env: TARGET=i686-unknown-linux-gnu CHANNEL=stable
+      env: TARGET_ARCH=i686 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu CHANNEL=stable
       addons:
         apt:
           packages: &i686_unknown_linux_gnu
             # Cross compiler and cross compiled C libraries
             - gcc-multilib
     - os: osx
-      env: TARGET=x86_64-apple-darwin CHANNEL=stable
+      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-apple TARGET_OS=darwin CHANNEL=stable
     - os: linux
-      env: TARGET=x86_64-unknown-linux-gnu CHANNEL=stable
+      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu CHANNEL=stable
     - os: linux
-      env: TARGET=x86_64-unknown-linux-musl CHANNEL=stable
+      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-musl CHANNEL=stable
     # Beta channel
     - os: linux
-      env: TARGET=arm-unknown-linux-gnueabihf CHANNEL=beta
+      env: TARGET_ARCH=arm TARGET_VENDOR=-unknown TARGET_OS=linux-gnueabihf CHANNEL=beta
       addons:
         apt:
           # Use the same packages the stable version uses
