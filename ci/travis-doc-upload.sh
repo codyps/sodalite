@@ -17,9 +17,16 @@ eval key=\$encrypted_${SSH_KEY_TRAVIS_ID}_key
 eval iv=\$encrypted_${SSH_KEY_TRAVIS_ID}_iv
 
 id="id_ed25519"
+
 mkdir -p ~/.ssh
-openssl aes-256-cbc -K "$key" -iv "$iv" -in "$D/docs_github_id.enc" -out ~/.ssh/"$id" -d
-chmod 600 ~/.ssh/"$id"
+cat > ~/.ssh/config <<EOF
+Host github.com
+  IdentityFile=~/docs_github_id
+  IdentitiesOnly=yes
+EOF
+chmod 600 ~/.ssh/config
+openssl aes-256-cbc -K "$key" -iv "$iv" -in "$D/docs_github_id.enc" -out ~/.ssh/docs_github_id -d
+chmod 600 ~/.ssh/docs_github_id
 
 git clone --branch gh-pages "git@github.com:$DOCS_REPO" deploy_docs
 
