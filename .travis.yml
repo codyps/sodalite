@@ -12,7 +12,7 @@ matrix:
   include:
     # Stable channel
     - os: linux
-      env: TARGET=arm-unknown-linux-gnueabihf CHANNEL=stable
+      env: TARGET_ARCH=arm TARGET_OS=linux-gnueabihf TARGET_VENDOR=-unknown CHANNEL=stable
       # Extra packages only for this job
       addons:
         apt:
@@ -24,7 +24,7 @@ matrix:
             # Emulator
             - qemu-user
     - os: osx
-      env: TARGET=i686-apple-darwin CHANNEL=stable
+      env: TARGET_ARCH=i686 TARGET_VENDOR=-apple TARGET_OS=darwin CHANNEL=stable
     - os: linux
       env: TARGET=i686-unknown-linux-gnu CHANNEL=stable
       addons:
@@ -46,47 +46,47 @@ matrix:
           # Use the same packages the stable version uses
           packages: *arm_unknown_linux_gnueabihf
     - os: osx
-      env: TARGET=i686-apple-darwin CHANNEL=beta
+      env: TARGET_ARCH=i686 TARGET_VENDOR=-apple TARGET_OS=darwin CHANNEL=beta
     - os: linux
-      env: TARGET=i686-unknown-linux-gnu CHANNEL=beta
+      env: TARGET_ARCH=i686 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu CHANNEL=beta
       addons:
         apt:
           packages: *i686_unknown_linux_gnu
     - os: osx
-      env: TARGET=x86_64-apple-darwin CHANNEL=beta
+      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-apple TARGET_OS=darwin CHANNEL=beta
     - os: linux
-      env: TARGET=x86_64-unknown-linux-gnu CHANNEL=beta
+      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu CHANNEL=beta
     - os: linux
-      env: TARGET=x86_64-unknown-linux-musl CHANNEL=beta
+      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-musl CHANNEL=beta
     # Nightly channel
     - os: linux
-      env: TARGET=arm-unknown-linux-gnueabihf CHANNEL=nightly
+      env: TARGET_ARCH=arm TARGET_VENDOR=-unknown TARGET_OS=linux-gnueabihf CHANNEL=nightly
       addons:
         apt:
           # Use the same packages the stable version uses
           packages: *arm_unknown_linux_gnueabihf
     - os: osx
-      env: TARGET=i686-apple-darwin CHANNEL=nightly
+      env: TARGET_ARCH=i686 TARGET_VENDOR=-apple TARGET_OS=darwin CHANNEL=nightly
     - os: linux
-      env: TARGET=i686-unknown-linux-gnu CHANNEL=nightly
+      env: TARGET_ARCH=i686 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu CHANNEL=nightly
       addons:
         apt:
           packages: *i686_unknown_linux_gnu
     - os: osx
-      env: TARGET=x86_64-apple-darwin CHANNEL=nightly
+      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-apple TARGET_OS=darwin CHANNEL=nightly
     - os: linux
-      env: TARGET=x86_64-unknown-linux-gnu CHANNEL=nightly
+      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu CHANNEL=nightly
     - os: linux
-      env: TARGET=x86_64-unknown-linux-musl CHANNEL=nightly
+      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-musl CHANNEL=nightly
   allow_failures:
     # NOTE This target appears to be broken on Rust 1.7.0 and on nightlies :/
     # TODO You may want to remove this entry by the time Rust 1.8.0 is out
     - os: linux
-      env: TARGET=arm-unknown-linux-gnueabihf CHANNEL=stable
+      env: TARGET_ARCH=arm TARGET_VENDOR=-unknown TARGET_OS=linux-gnueabihf CHANNEL=stable
     - os: linux
-      env: TARGET=arm-unknown-linux-gnueabihf CHANNEL=nightly
+      env: TARGET_ARCH=arm TARGET_VENDOR=-unknown TARGET_OS=linux-gnueabihf CHANNEL=nightly
     - os: linux
-      env: TARGET=arm-unknown-linux-gnueabihf CHANNEL=beta
+      env: TARGET_ARCH=arm TARGET_VENDOR=-unknown TARGET_OS=linux-gnueabihf CHANNEL=beta
 
 install:
   - export PATH="$PATH:~/multirust/bin"
