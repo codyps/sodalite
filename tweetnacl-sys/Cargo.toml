@@ -7,6 +7,7 @@ repository = "https://github.com/jmesmon/sodalite.git"
 description = "tweetnacl & FFI bindings to it"
 keywords = [ "nacl", "crypto", "ffi"]
 license = "MIT OR Apache-2.0"
+include = [ "Cargo.toml", "src/*.rs", "src/*.c", "build.rs" ]
 
 [dependencies]
 libc = "0.*"
