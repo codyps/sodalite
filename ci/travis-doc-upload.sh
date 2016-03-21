@@ -16,9 +16,10 @@ D="$(dirname "$0")"
 eval key=\$encrypted_${SSH_KEY_TRAVIS_ID}_key
 eval iv=\$encrypted_${SSH_KEY_TRAVIS_ID}_iv
 
+id="id_ed25519"
 mkdir -p ~/.ssh
-openssl aes-256-cbc -K "$key" -iv "$iv" -in "$D/docs_github_id.enc" -out ~/.ssh/id_rsa -d
-chmod 600 ~/.ssh/id_rsa
+openssl aes-256-cbc -K "$key" -iv "$iv" -in "$D/docs_github_id.enc" -out ~/.ssh/"$id" -d
+chmod 600 ~/.ssh/"$id"
 
 git clone --branch gh-pages "git@github.com:$DOCS_REPO" deploy_docs
 
