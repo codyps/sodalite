@@ -7,6 +7,7 @@ set -eufx
 
 D="$(dirname "$0")"
 
+. "$D/common.sh"
 . "$D/travis-doc-upload.cfg"
 
 [ "$TRAVIS_BRANCH" = master ]
@@ -34,7 +35,7 @@ git config user.name "doc upload bot"
 git config user.email "nobody@example.com"
 rm -rf "$PROJECT_NAME"
 mkdir -p "$(dirname "$PROJECT_NAME")"
-mv ../target/doc "$PROJECT_NAME"
+mv ../target/$TARGET/doc "$PROJECT_NAME"
 git add -A "$PROJECT_NAME"
 git commit -qm "doc upload for $PROJECT_NAME ($TRAVIS_REPO_SLUG)"
 git push -q origin gh-pages

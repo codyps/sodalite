@@ -47,3 +47,5 @@ case "$TARGET" in
     cargo test --target $TARGET
     ;;
 esac
+
+cargo doc --target "$TARGET" --verbose
