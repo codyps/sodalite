@@ -12,7 +12,7 @@ matrix:
   include:
     # Stable channel
     - os: linux
-      env: TARGET_ARCH=arm TARGET_VENDOR=-unknown TARGET_OS=linux-gnueabihfCHANNEL=stable
+      env: TARGET_ARCH=arm TARGET_VENDOR=-unknown TARGET_OS=linux-gnueabihf CHANNEL=stable
       # Extra packages only for this job
       addons:
         apt:
