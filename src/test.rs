@@ -257,18 +257,18 @@ fn sign() {
     let mut rng = rand::thread_rng();
 
     // max length is arbitrary
-    let len = rng.gen_range(0, 1);
+    let len = rng.gen_range(0, 1024);
     println!("length: {}", len);
 
     let mut m = vec![0u8;len];
     rng.fill_bytes(&mut m);
 
-    let mut pk = [0u8;32];
-    let mut sk = [0u8;64];
-    let mut pk2 = [0u8;32];
-    let mut sk2 = [0u8;64];
+    let mut pk = [0u8;super::SIGN_PUBLIC_KEY_LEN];
+    let mut sk = [0u8;super::SIGN_SECRET_KEY_LEN];
+    let mut pk2 = [0u8;super::SIGN_PUBLIC_KEY_LEN];
+    let mut sk2 = [0u8;super::SIGN_SECRET_KEY_LEN];
 
-    let mut seed = [0u8;32];
+    let mut seed = [0u8;super::SIGN_PUBLIC_KEY_LEN];
     rng.fill_bytes(&mut seed);
 
     super::sign_keypair_seed(&mut pk, &mut sk, &seed);
@@ -277,14 +277,11 @@ fn sign() {
     assert_eq!(&pk[..], &pk2[..]);
     assert_eq!(&sk[..], &sk2[..]);
 
-    let n = len + 64;
+    let n = len + super::SIGN_LEN;
     let mut out1 = vec![0u8;n];
-    let v = super::sign(&mut out1, &m, &sk);
-    out1.truncate(v);
+    super::sign_attached(&mut out1, &m, &sk);
     let mut out2 = vec![0u8;n];
-    let v = tweetnacl::crypto_sign(&mut out2, &m, &sk);
-    out2.truncate(v);
-    assert_eq!(&out1[..32], &out2[..32]);
+    tweetnacl::crypto_sign(&mut out2, &m, &sk);
     assert_eq!(out1, out2);
 
     let mut dec1 = vec![0u8;n];

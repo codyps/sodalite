@@ -917,8 +917,11 @@ fn scalarbase(p: &mut [Gf;4], s: &[u8;32])
 
 pub const SIGN_PUBLIC_KEY_LEN : usize = 32;
 pub const SIGN_SECRET_KEY_LEN : usize = 64;
+pub const SIGN_LEN : usize = 64;
 pub type SignPublicKey = [u8;SIGN_PUBLIC_KEY_LEN];
 pub type SignSecretKey = [u8;SIGN_SECRET_KEY_LEN];
+pub type Sign = [u8;SIGN_LEN];
+
 pub fn sign_keypair_seed(pk: &mut SignPublicKey, sk: &mut SignSecretKey, seed: &[u8;32])
 {
     /* FIXME: uninit in tweet-nacl */
@@ -998,9 +1001,18 @@ fn reduce(r: &mut [u8;64])
     mod_l(index_mut_32(r), &mut x);
 }
 
-pub fn sign(sm: &mut [u8], m: &[u8], sk: &SignSecretKey) -> usize
+/**
+ * Generate an attached (ie: joined) signature for @m (the message). The signature is stored at the
+ * beginning of @sm (signed message). @sm must be at exactly @m.len() + SIGN_LEN bytes long.
+ * 
+ * @sm is not read from, it is only used as an output parameter.
+ * 
+ * Panics:
+ *  - @sm is not the right size.
+ */
+pub fn sign_attached(sm: &mut [u8], m: &[u8], sk: &SignSecretKey)
 {
-    assert_eq!(sm.len(), m.len() + 64);
+    assert_eq!(sm.len(), m.len() + SIGN_LEN);
 
     /* XXX: uninit in tweet nacl { */
     let mut d = [0u8; 64];
@@ -1046,9 +1058,18 @@ pub fn sign(sm: &mut [u8], m: &[u8], sk: &SignSecretKey) -> usize
     }
 
     mod_l(index_mut_32(&mut sm[32..]), &mut x);
-
-    m.len()+64
 }
+
+/*
+/**
+ * generate a detached (ie: seperated) signature for @m (the message)
+ *
+ * TODO: to impl this efficiently, we need incrimental hashing support
+ */
+pub fn sign(sig: &mut Sign, m: &[u8], sk: &SignSecretKey)
+{
+}
+*/
 
 fn unpackneg(r: &mut [Gf;4], p: &[u8; 32]) -> isize /* int */
 {
