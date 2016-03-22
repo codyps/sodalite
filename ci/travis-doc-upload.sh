@@ -33,6 +33,9 @@ set +x
 openssl aes-256-cbc -K "$key" -iv "$iv" -in "$D/docs_github_id.enc" -out ~/.ssh/id_rsa -d
 set -x
 chmod -R u=rwX ~/.ssh
+# XXX: the above for some reason isn't working.
+chmod 600 ~/.ssh/id_rsa
+chmod 600 ~/.ssh/config
 
 git clone --branch gh-pages "git@github.com:$DOCS_REPO" deploy_docs || {
 	git clone "git@github.com:$DOCS_REPO" deploy_docs
