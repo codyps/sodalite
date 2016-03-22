@@ -21,10 +21,15 @@ set -x
 
 # TODO: generalize over other key types (not just rsa)
 mkdir -p ~/.ssh
+# travis OSX doesn't add these automatically (linux does)
+echo >> ~/.ssh/config <<EOF
+Host github.com
+	StrictHostKeyChecking no
+EOF
 set +x
 openssl aes-256-cbc -K "$key" -iv "$iv" -in "$D/docs_github_id.enc" -out ~/.ssh/id_rsa -d
 set -x
-chmod 600 ~/.ssh/id_rsa
+chmod -R u+rwX ~/.ssh
 
 git clone --branch gh-pages "git@github.com:$DOCS_REPO" deploy_docs || {
 	git clone "git@github.com:$DOCS_REPO" deploy_docs
