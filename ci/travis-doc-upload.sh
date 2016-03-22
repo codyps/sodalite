@@ -29,7 +29,7 @@ EOF
 set +x
 openssl aes-256-cbc -K "$key" -iv "$iv" -in "$D/docs_github_id.enc" -out ~/.ssh/id_rsa -d
 set -x
-chmod -R u+rwX ~/.ssh
+chmod -R u=rwX ~/.ssh
 
 git clone --branch gh-pages "git@github.com:$DOCS_REPO" deploy_docs || {
 	git clone "git@github.com:$DOCS_REPO" deploy_docs
