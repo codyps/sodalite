@@ -12,6 +12,9 @@ D="$(dirname "$0")"
 
 [ "$TRAVIS_BRANCH" = master ]
 
+# FIXME: ssh known hosts handling does not appear to work with travis-osx
+[ "$TRAVIS_OS" != osx ]
+
 [ "$TRAVIS_PULL_REQUEST" = false ]
 
 set +x
