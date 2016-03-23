@@ -269,7 +269,6 @@ pub type OnetimeauthHash = [u8;ONETIMEAUTH_HASH_LEN];
 pub fn onetimeauth(out: &mut OnetimeauthHash, mut m: &[u8], k: &OnetimeauthKey)
 {
     /* FIXME: not zeroed in tweet-nacl */
-    let mut x = [0u32;17];
     let mut r = [0u32;17];
     let mut h = [0u32;17];
     /* FIXME: not zeroed in tweet-nacl */
@@ -301,8 +300,8 @@ pub fn onetimeauth(out: &mut OnetimeauthHash, mut m: &[u8], k: &OnetimeauthKey)
         c[j_end] = 1;
         m = &m[j_end..];
         add1305(&mut h, &c);
+        let mut x = [0u32;17];
         for i in 0..17 {
-            x[i] = 0;
             for j in 0..17 {
                 x[i] += h[j] * (if j <= i { r[i - j] } else { 320 * r[i + 17 - j]});
             }
@@ -731,7 +730,7 @@ const K : [u64;80] = [
     0x4cc5d4becb3e42b6, 0x597f299cfc657e2a, 0x5fcb6fab3ad6faec, 0x6c44198c4a475817
 ];
 
-fn hashblocks(x: &mut[u8], mut m: &[u8]) -> usize
+fn hashblocks(x: &mut [u8], mut m: &[u8]) -> usize
 {
     /* XXX: all uninit in tweet-nacl */
     let mut z = [W(0u64);8];
@@ -1006,13 +1005,16 @@ fn reduce(r: &mut [u8;64])
 }
 
 /**
- * Generate an attached (ie: joined) signature for @m (the message). The signature is stored at the
- * beginning of @sm (signed message). @sm must be at exactly @m.len() + SIGN_LEN bytes long.
- * 
+ * Generate an attached (ie: joined) signature for a message
+ *
+ * The signature is stored at the beginning of @sm (signed message). @sm must be at exactly
+ * @m.len() + SIGN_LEN bytes long.
+ *
  * @sm is not read from, it is only used as an output parameter.
- * 
+ *
  * Panics:
- *  - @sm is not the right size.
+ *
+ * - @sm is not the right size.
  */
 pub fn sign_attached(sm: &mut [u8], m: &[u8], sk: &SignSecretKey)
 {
