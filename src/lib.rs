@@ -79,12 +79,14 @@ fn vn(x: &[u8], y: &[u8]) -> isize
     ((W(1) & ((W(d) - W(1)) >> 8)) - W(1)).0 as isize
 }
 
-pub fn verify_16(x: &[u8;16], y: &[u8;16]) -> isize
+/* XXX: public in tweet-nacl */
+fn verify_16(x: &[u8;16], y: &[u8;16]) -> isize
 {
     vn(&x[..], &y[..])
 }
 
-pub fn verify_32(x: &[u8;32], y: &[u8;32]) -> isize
+/* XXX: public in tweet-nacl */
+fn verify_32(x: &[u8;32], y: &[u8;32]) -> isize
 {
     vn(&x[..], &y[..])
 }
@@ -165,19 +167,22 @@ fn core(out: &mut[u8], inx: &[u8;16], k: &[u8;32], c: &[u8;16], h: bool)
     }
 }
 
-pub fn core_salsa20(out: &mut [u8;64], inx: &[u8;16], k: &[u8;32], c: &[u8;16])
+/* XXX: public in tweet-nacl */
+fn core_salsa20(out: &mut [u8;64], inx: &[u8;16], k: &[u8;32], c: &[u8;16])
 {
     core(out,inx,k,c,false);
 }
 
-pub fn core_hsalsa20(out: &mut [u8;32], inx: &[u8;16], k: &[u8;32], c: &[u8;16])
+/* XXX: public in tweet-nacl */
+fn core_hsalsa20(out: &mut [u8;32], inx: &[u8;16], k: &[u8;32], c: &[u8;16])
 {
     core(out,inx,k,c,true);
 }
 
 static SIGMA : &'static [u8;16] = b"expand 32-byte k";
 
-pub fn stream_salsa20_xor(mut c: &mut [u8], mut m: Option<&[u8]>, n: &[u8;8], k: &[u8;32])
+/* XXX: public in tweet-nacl */
+fn stream_salsa20_xor(mut c: &mut [u8], mut m: Option<&[u8]>, n: &[u8;8], k: &[u8;32])
 {
     let mut z = [0u8;16];
 
@@ -224,7 +229,8 @@ pub fn stream_salsa20_xor(mut c: &mut [u8], mut m: Option<&[u8]>, n: &[u8;8], k:
     }
 }
 
-pub fn stream_salsa20(c: &mut [u8], n : &[u8;8], k: &[u8;32])
+/* XXX: public in tweet-nacl */
+fn stream_salsa20(c: &mut [u8], n : &[u8;8], k: &[u8;32])
 {
     stream_salsa20_xor(c, None, n, k)
 }
@@ -271,7 +277,6 @@ pub fn onetimeauth(out: &mut OnetimeauthHash, mut m: &[u8], k: &OnetimeauthKey)
     /* FIXME: not zeroed in tweet-nacl */
     let mut r = [0u32;17];
     let mut h = [0u32;17];
-    /* FIXME: not zeroed in tweet-nacl */
 
     for j in 0..16 {
         r[j] = k[j] as u32;
@@ -641,7 +646,8 @@ fn scalarmult(q: &mut [u8;32], n: &[u8;32], p: &[u8;32])
     pack25519(q, *index_16(&x[16..]));
 }
 
-pub fn scalarmult_base(q: &mut [u8;32], n: &[u8;32])
+/* XXX: public in tweet-nacl */
+fn scalarmult_base(q: &mut [u8;32], n: &[u8;32])
 {
     scalarmult(q, n, &C_9)
 }
@@ -658,7 +664,8 @@ pub fn box_keypair(pk: &mut BoxPublicKey, sk: &mut BoxSecretKey)
     scalarmult_base(pk,sk)
 }
 
-pub fn box_beforenm(k: &mut[u8;32], pk: &BoxPublicKey, sk: &BoxSecretKey)
+/* XXX: public in tweet-nacl */
+fn box_beforenm(k: &mut[u8;32], pk: &BoxPublicKey, sk: &BoxSecretKey)
 {
     /* TODO: uninit in tweet-nacl */
     let mut s = [0u8; 32];
@@ -666,12 +673,14 @@ pub fn box_beforenm(k: &mut[u8;32], pk: &BoxPublicKey, sk: &BoxSecretKey)
     core_hsalsa20(k, &C_0, &s, SIGMA)
 }
 
-pub fn box_afternm(c: &mut[u8], m: &[u8], n: &[u8;24], k: &[u8;32]) -> Result<(),()>
+/* XXX: public in tweet-nacl */
+fn box_afternm(c: &mut[u8], m: &[u8], n: &[u8;24], k: &[u8;32]) -> Result<(),()>
 {
     secretbox(c,m,n,k)
 }
 
-pub fn box_open_afternm(m: &mut[u8], c: &[u8], n: &[u8;24], k: &[u8;32]) -> Result<(),()>
+/* XXX: public in tweet-nacl */
+fn box_open_afternm(m: &mut[u8], c: &[u8], n: &[u8;24], k: &[u8;32]) -> Result<(),()>
 {
     secretbox_open(m,c,n,k)
 }
@@ -1136,7 +1145,20 @@ fn unpackneg(r: &mut [Gf;4], p: &[u8; 32]) -> isize /* int */
     return 0;
 }
 
-pub fn sign_open(m: &mut [u8], sm : &[u8], pk: &SignPublicKey) -> Result<usize, ()>
+/**
+ * verify an attached signature
+ *
+ * @m must have the same length as @sm.
+ *
+ * If verification failed, returns Err(()).
+ * Otherwise, returns the number of bytes in message & copies the message into @m
+ *
+ * Panics:
+ *
+ * - If m.len() != sm.len()
+ *
+ */
+pub fn sign_attached_open(m: &mut [u8], sm : &[u8], pk: &SignPublicKey) -> Result<usize, ()>
 {
     assert_eq!(m.len(), sm.len());
     let mut t = [0u8;32];
