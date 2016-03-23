@@ -654,8 +654,10 @@ pub fn scalarmult_base(q: &mut [u8;32], n: &[u8;32])
 
 pub const BOX_SECRET_KEY_LEN : usize = 32;
 pub const BOX_PUBLIC_KEY_LEN : usize = 32;
+pub const BOX_NONCE_LEN : usize = 24;
 pub type BoxPublicKey = [u8; BOX_PUBLIC_KEY_LEN];
 pub type BoxSecretKey = [u8; BOX_SECRET_KEY_LEN];
+pub type BoxNonce = [u8; BOX_NONCE_LEN];
 pub fn box_keypair(pk: &mut BoxPublicKey, sk: &mut BoxSecretKey)
 {
     randombytes(&mut sk[..32]);
@@ -680,7 +682,7 @@ pub fn box_open_afternm(m: &mut[u8], c: &[u8], n: &[u8;24], k: &[u8;32]) -> Resu
     secretbox_open(m,c,n,k)
 }
 
-pub fn box_(c: &mut [u8], m: &[u8], n: &[u8;24], pk: &BoxPublicKey, sk: &BoxSecretKey) -> Result<(),()>
+pub fn box_(c: &mut [u8], m: &[u8], n: &BoxNonce, pk: &BoxPublicKey, sk: &BoxSecretKey) -> Result<(),()>
 {
     assert_eq!(&m[..32], &[0u8;32]);
     /* FIXME: uninit in tweet-nacl */
@@ -692,7 +694,7 @@ pub fn box_(c: &mut [u8], m: &[u8], n: &[u8;24], pk: &BoxPublicKey, sk: &BoxSecr
 pub fn box_open(m : &mut [u8], c: &[u8], n: &[u8;24], y: &[u8;32], x: &[u8;32]) -> Result<(),()>
 {
     assert_eq!(&c[..16], &[0u8;16]);
-    /* FIXME: k was not zeroed */
+    /* FIXME: uninit in tweet-nacl */
     let mut k = [0u8; 32];
     box_beforenm(&mut k,y,x);
     box_open_afternm(m,c,n, &k)
@@ -792,7 +794,9 @@ const IV:[u8; 64] = [
 ];
 
 /* sha512 */
-pub fn hash(out: &mut [u8], mut m: &[u8])
+pub const HASH_LEN : usize = 64;
+pub type Hash = [u8;HASH_LEN];
+pub fn hash(out: &mut Hash, mut m: &[u8])
 {
     let mut h = IV;
 
