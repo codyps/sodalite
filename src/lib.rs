@@ -272,7 +272,6 @@ pub fn onetimeauth(out: &mut OnetimeauthHash, mut m: &[u8], k: &OnetimeauthKey)
     let mut r = [0u32;17];
     let mut h = [0u32;17];
     /* FIXME: not zeroed in tweet-nacl */
-    let mut c = [0u32;17];
 
     for j in 0..16 {
         r[j] = k[j] as u32;
@@ -287,9 +286,7 @@ pub fn onetimeauth(out: &mut OnetimeauthHash, mut m: &[u8], k: &OnetimeauthKey)
     r[15]&=15;
 
     while m.len() > 0 {
-        for j in  0..17 {
-            c[j] = 0;
-        }
+        let mut c = [0u32;17];
 
         let j_end = cmp::min(m.len(), 16);
         for j in 0..j_end {
@@ -334,6 +331,8 @@ pub fn onetimeauth(out: &mut OnetimeauthHash, mut m: &[u8], k: &OnetimeauthKey)
         h[j] ^= s & (g[j] ^ h[j]);
     }
 
+    /* FIXME: extra zeroing */
+    let mut c = [0u32;17];
     for j in 0..16 {
         c[j] = k[j + 16] as u32;
     }
