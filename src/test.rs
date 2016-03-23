@@ -285,7 +285,7 @@ fn sign() {
     assert_eq!(out1, out2);
 
     let mut dec1 = vec![0u8;n];
-    let v = super::sign_open(&mut dec1, &out1, &pk).unwrap();
+    let v = super::sign_attached_open(&mut dec1, &out1, &pk).unwrap();
     dec1.truncate(v);
     let mut dec2 = vec![0u8;n];
     let v = tweetnacl::crypto_sign_open(&mut dec2, &out2, &pk).unwrap();
