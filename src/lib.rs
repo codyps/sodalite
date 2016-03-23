@@ -273,8 +273,6 @@ pub fn onetimeauth(out: &mut OnetimeauthHash, mut m: &[u8], k: &OnetimeauthKey)
     let mut h = [0u32;17];
     /* FIXME: not zeroed in tweet-nacl */
     let mut c = [0u32;17];
-    /* FIXME: not zeroed in tweet-nacl */
-    let mut g = [0u32;17];
 
     for j in 0..16 {
         r[j] = k[j] as u32;
@@ -328,9 +326,7 @@ pub fn onetimeauth(out: &mut OnetimeauthHash, mut m: &[u8], k: &OnetimeauthKey)
         h[16] = u;
     }
 
-    for j in 0..17 {
-        g[j] = h[j];
-    }
+    let g = h;
     add1305(&mut h, &MINUSP);
     /* XXX: check signed cast */
     let s : u32 = (-((h[16] >> 7) as i32)) as u32;
