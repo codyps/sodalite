@@ -694,13 +694,13 @@ pub fn box_(c: &mut [u8], m: &[u8], n: &BoxNonce, pk: &BoxPublicKey, sk: &BoxSec
     box_afternm(c,m,n, &k)
 }
 
-pub fn box_open(m : &mut [u8], c: &[u8], n: &[u8;24], y: &[u8;32], x: &[u8;32]) -> Result<(),()>
+pub fn box_open(m : &mut [u8], c: &[u8], n: &BoxNonce, pk: &BoxPublicKey, sk: &BoxSecretKey) -> Result<(),()>
 {
     assert_eq!(&c[..16], &[0u8;16]);
     /* FIXME: uninit in tweet-nacl */
     let mut k = [0u8; 32];
-    box_beforenm(&mut k,y,x);
-    box_open_afternm(m,c,n, &k)
+    box_beforenm(&mut k,pk,sk);
+    box_open_afternm(m,c,n,&k)
 }
 
 fn r(x: W<u64>, c: usize) -> W<u64> { (x >> c) | (x << (64 - c)) }
