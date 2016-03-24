@@ -1,6 +1,9 @@
+#! /bin/bash
 # `install` phase: install stuff needed for the `script` phase
 
 set -ex
+
+. "$(dirname "$0")/common.sh"
 
 # Install multirust
 git clone https://github.com/brson/multirust
@@ -9,15 +12,6 @@ pushd multirust
 ./install.sh --prefix=~/multirust
 multirust default $CHANNEL
 popd
-
-case "$TRAVIS_OS_NAME" in
-  linux)
-    host=x86_64-unknown-linux-gnu
-    ;;
-  osx)
-    host=x86_64-apple-darwin
-    ;;
-esac
 
 # Install standard libraries needed for cross compilation
 if [ "$host" != "$TARGET" ]; then

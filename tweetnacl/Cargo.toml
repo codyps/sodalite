@@ -6,6 +6,7 @@ repository = "https://github.com/jmesmon/sodalite.git"
 description = "A rust api for using tweetnacl"
 keywords = [ "nacl", "crypto" ]
 license = "MIT OR Apache-2.0"
+include = [ "Cargo.toml", "src/*.rs" ]
 
 [dependencies]
 tweetnacl-sys = { path = "../tweetnacl-sys", version = "0.*" }
