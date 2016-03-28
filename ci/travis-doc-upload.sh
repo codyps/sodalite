@@ -47,7 +47,21 @@ git config user.email "nobody@example.com"
 rm -rf "$PROJECT_NAME"
 mkdir -p "$(dirname "$PROJECT_NAME")"
 mv ../target/$TARGET/doc "$PROJECT_NAME"
-git add -A "$PROJECT_NAME"
+
+# For each element of $PROJECT_NAME generate an index
+# this _must_ be the crate we care about, used to suffix last indexing
+base="$(basename "$PROJECT_NAME")"
+# cursor for iteration
+curr="$PROJECT_NAME"
+while true; do
+	"$D"/generate-index.sh "$curr"
+	curr="$(dirname "$curr")"
+	if [ -z "$curr" ]; then
+		break
+	fi
+done
+
+git add -A .
 git commit -qm "doc upload for $PROJECT_NAME ($TRAVIS_REPO_SLUG)"
 
 while ! git push -q origin HEAD:refs/heads/gh-pages; do
