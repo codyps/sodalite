@@ -50,16 +50,19 @@ mv ../target/$TARGET/doc "$PROJECT_NAME"
 
 # For each element of $PROJECT_NAME generate an index
 # this _must_ be the crate we care about, used to suffix last indexing
-../"$D"/generate-index.sh "$PROJECT_NAME" "$PROJECT_BASE/index.html"
 # cursor for iteration
 curr="$(dirname "$PROJECT_NAME")"
-while true; do
-	../"$D"/generate-index.sh "$curr"
-	if [ . = "$curr" ]; then
-		break
-	fi
+../"$D"/generate-index.sh "$curr" "$PROJECT_BASE/index.html"
+if ! [ . = "$curr" ]; then
 	curr="$(dirname "$curr")"
-done
+	while true; do
+		../"$D"/generate-index.sh "$curr"
+		if [ . = "$curr" ]; then
+			break
+		fi
+		curr="$(dirname "$curr")"
+	done
+fi
 
 git add -A .
 git commit -qm "doc upload for $PROJECT_NAME ($TRAVIS_REPO_SLUG)"
