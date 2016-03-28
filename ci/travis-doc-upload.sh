@@ -57,7 +57,7 @@ curr="$(dirname "$PROJECT_NAME")"
 while true; do
 	../"$D"/generate-index.sh "$curr"
 	curr="$(dirname "$curr")"
-	if [ -z "$curr" ]; then
+	if [ . = "$curr" ]; then
 		break
 	fi
 done
