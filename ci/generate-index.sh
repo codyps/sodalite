@@ -7,7 +7,11 @@ if [ "$#" -ne 1 ] && [ "$#" -ne 2 ]; then
   exit 1
 fi
 
-suffix="${2:index.html}"
+if [ "$#" -eq 1 ]; then
+  suffix="index.html"
+else
+  suffix="${2}"
+fi
 o="$1/.tmp_index_$$"
 rm -f "$o"
 echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></meta></head><body><ul>' >> "$o"
@@ -18,7 +22,7 @@ for i in "$1"/*; do
   fi
   # TODO: proper encoding & escaping
   f="$(basename $i)"
-  echo '<li><a href="'"$f$suffix"'">'"$f"'</a></li>' >> "$o"
+  echo '<li><a href="'"$f/$suffix"'">'"$f"'</a></li>' >> "$o"
 done
 
 echo "</ul></body></html>" >> "$o"
