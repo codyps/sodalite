@@ -51,8 +51,9 @@ mv ../target/$TARGET/doc "$PROJECT_NAME"
 # For each element of $PROJECT_NAME generate an index
 # this _must_ be the crate we care about, used to suffix last indexing
 base="$(basename "$PROJECT_NAME")"
+"$D"/generate-index.sh "$PROJECT_NAME" "$base/index.html"
 # cursor for iteration
-curr="$PROJECT_NAME"
+curr="$(dirname "$PROJECT_NAME")"
 while true; do
 	"$D"/generate-index.sh "$curr"
 	curr="$(dirname "$curr")"
