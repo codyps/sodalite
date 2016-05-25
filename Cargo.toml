@@ -13,6 +13,7 @@ include = ["Cargo.toml", "src/*.rs" ]
 
 [dependencies]
 rand = "0.*"
+index-fixed = "0.0.*"
 
 [dev-dependencies]
 tweetnacl = { path = "tweetnacl", version = "0.*" }

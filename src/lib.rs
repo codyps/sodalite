@@ -1,7 +1,9 @@
 use std::cmp;
-use std::mem;
 use std::num::Wrapping as W;
 extern crate rand;
+
+#[macro_use]
+extern crate index_fixed;
 
 #[cfg(test)]
 mod test;
@@ -91,27 +93,6 @@ fn verify_32(x: &[u8;32], y: &[u8;32]) -> isize
     vn(&x[..], &y[..])
 }
 
-macro_rules! index_n {
-    ($name:ident $name_mut:ident $ct:expr) => {
-        #[allow(dead_code)]
-        fn $name<T>(a: &[T]) -> &[T;$ct] {
-            let x = &a[..$ct];
-            unsafe { mem::transmute(x.as_ptr()) }
-        }
-
-        #[allow(dead_code)]
-        fn $name_mut<T>(a: &mut [T]) -> &mut [T;$ct] {
-            let x = &mut a[..$ct];
-            unsafe { mem::transmute(x.as_mut_ptr()) }
-        }
-    }
-}
-
-index_n! {index_4 index_mut_4 4}
-index_n! {index_8 index_mut_8 8}
-index_n! {index_16 index_mut_16 16}
-index_n! {index_32 index_mut_32 32}
-
 fn core(out: &mut[u8], inx: &[u8;16], k: &[u8;32], c: &[u8;16], h: bool)
 {
     let mut w = [W(0u32); 16];
@@ -120,10 +101,10 @@ fn core(out: &mut[u8], inx: &[u8;16], k: &[u8;32], c: &[u8;16], h: bool)
     let mut t = [W(0u32); 4];
 
     for i in 0..4 {
-        x[5*i] = ld32(index_4(&c[4*i..]));
-        x[1+i] = ld32(index_4(&k[4*i..]));
-        x[6+i] = ld32(index_4(&inx[4*i..]));
-        x[11+i] = ld32(index_4(&k[16+4*i..]));
+        x[5*i] = ld32(index_fixed!(&c[4*i..];..4));
+        x[1+i] = ld32(index_fixed!(&k[4*i..];..4));
+        x[6+i] = ld32(index_fixed!(&inx[4*i..];..4));
+        x[11+i] = ld32(index_fixed!(&k[16+4*i..];..4));
     }
 
     for i in 0..16 {
@@ -153,16 +134,16 @@ fn core(out: &mut[u8], inx: &[u8;16], k: &[u8;32], c: &[u8;16], h: bool)
             x[i] = x[i] + y[i];
         }
         for i in 0..4 {
-            x[5*i] = x[5*i] - ld32(index_4(&c[4*i..]));
-            x[6+i] = x[6+i] - ld32(index_4(&inx[4*i..]));
+            x[5*i] = x[5*i] - ld32(index_fixed!(&c[4*i..];..4));
+            x[6+i] = x[6+i] - ld32(index_fixed!(&inx[4*i..];..4));
         }
         for i in 0..4 {
-            st32(index_mut_4(&mut out[4*i..]), x[5*i]);
-            st32(index_mut_4(&mut out[16+4*i..]), x[6+i]);
+            st32(index_fixed!(&mut out[4*i..];..4), x[5*i]);
+            st32(index_fixed!(&mut out[16+4*i..];..4), x[6+i]);
         }
     } else {
         for i in 0..16 {
-            st32(index_mut_4(&mut out[4 * i..]), x[i] + y[i]);
+            st32(index_fixed!(&mut out[4 * i..];..4), x[i] + y[i]);
         }
     }
 }
@@ -242,15 +223,15 @@ pub type StreamKey = [u8;STREAM_KEY_LEN];
 pub fn stream(c: &mut [u8], n: &StreamNonce, k: &StreamKey)
 {
     let mut s = [0u8; 32];
-    core_hsalsa20(&mut s,index_16(&n[..]),k,SIGMA);
-    stream_salsa20(c,index_8(&n[16..]),&s)
+    core_hsalsa20(&mut s,index_fixed!(&n[..];..16),k,SIGMA);
+    stream_salsa20(c,index_fixed!(&n[16..];..8),&s)
 }
 
 pub fn stream_xor(c: &mut [u8], m: &[u8], n: &StreamNonce, k: &StreamKey)
 {
     let mut s = [0u8; 32];
-    core_hsalsa20(&mut s,index_16(&n[..]),k,SIGMA);
-    stream_salsa20_xor(c,Some(m),index_8(&n[16..]), &s)
+    core_hsalsa20(&mut s,index_fixed!(&n[..];..16),k,SIGMA);
+    stream_salsa20_xor(c,Some(m),index_fixed!(&n[16..];..8), &s)
 }
 
 fn add1305(h: &mut [u32; 17], c: &[u32; 17])
@@ -370,10 +351,10 @@ pub fn secretbox(c: &mut [u8], m: &[u8], n: &SecretboxNonce, k: &SecretboxKey) -
     {
         /* XXX: we avoid aliasing to make rust happy at the cost of an extra copy via @o */
         let (c_k, c_m) = c.split_at(32);
-        onetimeauth(&mut o, c_m, index_32(c_k));
+        onetimeauth(&mut o, c_m, index_fixed!(&c_k;..32));
     }
-    *index_mut_16(&mut c[16..32]) = o;
-    *index_mut_16(c) = [0u8;16];
+    *index_fixed!(&mut c[16..32];..16) = o;
+    *index_fixed!(&mut c;..16) = [0u8;16];
 
     Ok(())
 }
@@ -389,7 +370,7 @@ pub fn secretbox_open(m: &mut [u8], c: &[u8], n: &SecretboxNonce, k: &SecretboxK
     }
     let mut x = [0u8; 32];
     stream(&mut x,n,k);
-    if onetimeauth_verify(index_16(&c[16..]), &c[32..], &x) != 0 {
+    if onetimeauth_verify(index_fixed!(&c[16..];..16), &c[32..], &x) != 0 {
         return Err(());
     }
     stream_xor(m,c,n,k);
@@ -586,7 +567,7 @@ fn scalarmult(q: &mut [u8;32], n: &[u8;32], p: &[u8;32])
 
     z[31]=(n[31]&127)|64;
     z[0]&=248;
-    unpack25519(index_mut_16(&mut x),p);
+    unpack25519(index_fixed!(&mut x;..16),p);
     /* TODO: not init in tweet-nacl */
     let mut b = GF0;
     for i in 0..16 {
@@ -624,7 +605,7 @@ fn scalarmult(q: &mut [u8;32], n: &[u8;32], p: &[u8;32])
         gf_mult(&mut tmp,c,a);
         c = tmp;
         gf_mult(&mut a,d,f);
-        gf_mult(&mut d,b, *index_16(&x));
+        gf_mult(&mut d,b, *index_fixed!(&x;..16));
         gf_square(&mut b,e);
         sel25519(&mut a, &mut b, r as isize);
         sel25519(&mut c, &mut d, r as isize);
@@ -637,13 +618,13 @@ fn scalarmult(q: &mut [u8;32], n: &[u8;32], p: &[u8;32])
     }
     /* XXX: avoid aliasing with an extra copy */
     let mut tmp = [0i64;16];
-    inv25519(&mut tmp, *index_16(&x[32..]));
-    *index_mut_16(&mut x[32..]) = tmp;
+    inv25519(&mut tmp, *index_fixed!(&x[32..];..16));
+    *index_fixed!(&mut x[32..];..16) = tmp;
 
     /* XXX: avoid aliasing with an extra copy */
-    gf_mult(&mut tmp, *index_16(&x[16..]), *index_16(&x[32..]));
-    *index_mut_16(&mut x[16..]) = tmp;
-    pack25519(q, *index_16(&x[16..]));
+    gf_mult(&mut tmp, *index_fixed!(&x[16..];..16), *index_fixed!(&x[32..];..16));
+    *index_fixed!(&mut x[16..];..16) = tmp;
+    pack25519(q, *index_fixed!(&x[16..];..16));
 }
 
 /* XXX: public in tweet-nacl */
@@ -743,14 +724,14 @@ fn hashblocks(x: &mut [u8], mut m: &[u8]) -> usize
     let mut w = [W(0u64);16];
 
     for i in 0..8 {
-        let v = dl64(index_8(&x[8 * i..]));
+        let v = dl64(index_fixed!(&x[8 * i..];..8));
         z[i] = v;
         a[i] = v;
     }
 
     while m.len() >= 128 {
         for i in 0..16 {
-            w[i] = dl64(index_8(&m[8 * i..]));
+            w[i] = dl64(index_fixed!(&m[8 * i..];..8));
         }
 
         for i in 0..80 {
@@ -779,7 +760,7 @@ fn hashblocks(x: &mut [u8], mut m: &[u8]) -> usize
     }
 
     for i in 0..8 {
-        ts64(index_mut_8(&mut x[8*i..]),z[i].0);
+        ts64(index_fixed!(&mut x[8*i..];..8),z[i].0);
     }
 
     m.len()
@@ -825,7 +806,7 @@ pub fn hash(out: &mut Hash, mut m: &[u8])
     x[l] = (b >> 61) as u8;
     /* FIXME: check cast to u64 */
     let l = x.len() - 8;
-    ts64(index_mut_8(&mut x[l..]), (b<<3) as u64);
+    ts64(index_fixed!(&mut x[l..];..8), (b<<3) as u64);
     hashblocks(&mut h, &x);
 
     for i in 0..64 {
@@ -935,13 +916,13 @@ pub fn sign_keypair_seed(pk: &mut SignPublicKey, sk: &mut SignSecretKey, seed: &
     let mut d = [0u8; 64];
     let mut p = [GF0;4];
 
-    *index_mut_32(sk) = *seed;
+    *index_fixed!(&mut sk;..32) = *seed;
     hash(&mut d, &sk[..32]);
     d[0] &= 248;
     d[31] &= 127;
     d[31] |= 64;
 
-    scalarbase(&mut p, index_32(&d));
+    scalarbase(&mut p, index_fixed!(&d;..32));
     pack(pk,&p);
 
     for i in 0..32 {
@@ -1005,7 +986,7 @@ fn reduce(r: &mut [u8;64])
     for i in 0..64 {
         r[i] = 0;
     }
-    mod_l(index_mut_32(r), &mut x);
+    mod_l(index_fixed!(&mut r;..32), &mut x);
 }
 
 /**
@@ -1045,8 +1026,8 @@ pub fn sign_attached(sm: &mut [u8], m: &[u8], sk: &SignSecretKey)
 
     hash(&mut r, &sm[32..][..m.len()+32]);
     reduce(&mut r);
-    scalarbase(&mut p, index_32(&r));
-    pack(index_mut_32(sm), &p);
+    scalarbase(&mut p, index_fixed!(&r;..32));
+    pack(index_fixed!(&mut sm;..32), &p);
 
     for i in 0..32 {
         sm[i+32] = sk[i+32];
@@ -1067,7 +1048,7 @@ pub fn sign_attached(sm: &mut [u8], m: &[u8], sk: &SignSecretKey)
         }
     }
 
-    mod_l(index_mut_32(&mut sm[32..]), &mut x);
+    mod_l(index_fixed!(&mut sm[32..];..32), &mut x);
 }
 
 /*
@@ -1184,16 +1165,16 @@ pub fn sign_attached_open(m: &mut [u8], sm : &[u8], pk: &SignPublicKey) -> Resul
     }
     hash(&mut h, &m[..sm.len()]);
     reduce(&mut h);
-    inner_scalarmult(&mut p, &mut q, index_32(&h));
+    inner_scalarmult(&mut p, &mut q, index_fixed!(&h;..32));
 
-    scalarbase(&mut q, index_32(&sm[32..]));
+    scalarbase(&mut q, index_fixed!(&sm[32..];..32));
     add(&mut p, &q);
     pack(&mut t, &p);
 
 
     let n = sm.len() - 64;
     /* TODO: check if verify_32 should return a bool */
-    if verify_32(index_32(sm), &t) != 0 {
+    if verify_32(index_fixed!(&sm;..32), &t) != 0 {
         for i in 0..n {
             m[i] = 0;
         }
