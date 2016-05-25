@@ -26,7 +26,7 @@ const I: Gf = [0xa0b0, 0x4a0e, 0x1b27, 0xc4ee, 0xe478, 0xad2f, 0x1806, 0x2f43, 0
 
 fn randombytes(x: &mut [u8])
 {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::OsRng::new().unwrap();
     rng.fill_bytes(x);
 }
 
