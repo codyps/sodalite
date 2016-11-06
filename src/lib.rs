@@ -1,7 +1,9 @@
 use std::cmp;
-use std::mem;
 use std::num::Wrapping as W;
 extern crate rand;
+
+#[macro_use]
+extern crate index_fixed;
 
 #[cfg(test)]
 mod test;
@@ -24,7 +26,7 @@ const I: Gf = [0xa0b0, 0x4a0e, 0x1b27, 0xc4ee, 0xe478, 0xad2f, 0x1806, 0x2f43, 0
 
 fn randombytes(x: &mut [u8])
 {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::OsRng::new().unwrap();
     rng.fill_bytes(x);
 }
 
@@ -79,36 +81,17 @@ fn vn(x: &[u8], y: &[u8]) -> isize
     ((W(1) & ((W(d) - W(1)) >> 8)) - W(1)).0 as isize
 }
 
-pub fn verify_16(x: &[u8;16], y: &[u8;16]) -> isize
+/* XXX: public in tweet-nacl */
+fn verify_16(x: &[u8;16], y: &[u8;16]) -> isize
 {
     vn(&x[..], &y[..])
 }
 
-pub fn verify_32(x: &[u8;32], y: &[u8;32]) -> isize
+/* XXX: public in tweet-nacl */
+fn verify_32(x: &[u8;32], y: &[u8;32]) -> isize
 {
     vn(&x[..], &y[..])
 }
-
-macro_rules! index_n {
-    ($name:ident $name_mut:ident $ct:expr) => {
-        #[allow(dead_code)]
-        fn $name<T>(a: &[T]) -> &[T;$ct] {
-            let x = &a[..$ct];
-            unsafe { mem::transmute(x.as_ptr()) }
-        }
-
-        #[allow(dead_code)]
-        fn $name_mut<T>(a: &mut [T]) -> &mut [T;$ct] {
-            let x = &mut a[..$ct];
-            unsafe { mem::transmute(x.as_mut_ptr()) }
-        }
-    }
-}
-
-index_n! {index_4 index_mut_4 4}
-index_n! {index_8 index_mut_8 8}
-index_n! {index_16 index_mut_16 16}
-index_n! {index_32 index_mut_32 32}
 
 fn core(out: &mut[u8], inx: &[u8;16], k: &[u8;32], c: &[u8;16], h: bool)
 {
@@ -118,10 +101,10 @@ fn core(out: &mut[u8], inx: &[u8;16], k: &[u8;32], c: &[u8;16], h: bool)
     let mut t = [W(0u32); 4];
 
     for i in 0..4 {
-        x[5*i] = ld32(index_4(&c[4*i..]));
-        x[1+i] = ld32(index_4(&k[4*i..]));
-        x[6+i] = ld32(index_4(&inx[4*i..]));
-        x[11+i] = ld32(index_4(&k[16+4*i..]));
+        x[5*i] = ld32(index_fixed!(&c[4*i..];..4));
+        x[1+i] = ld32(index_fixed!(&k[4*i..];..4));
+        x[6+i] = ld32(index_fixed!(&inx[4*i..];..4));
+        x[11+i] = ld32(index_fixed!(&k[16+4*i..];..4));
     }
 
     for i in 0..16 {
@@ -151,33 +134,36 @@ fn core(out: &mut[u8], inx: &[u8;16], k: &[u8;32], c: &[u8;16], h: bool)
             x[i] = x[i] + y[i];
         }
         for i in 0..4 {
-            x[5*i] = x[5*i] - ld32(index_4(&c[4*i..]));
-            x[6+i] = x[6+i] - ld32(index_4(&inx[4*i..]));
+            x[5*i] = x[5*i] - ld32(index_fixed!(&c[4*i..];..4));
+            x[6+i] = x[6+i] - ld32(index_fixed!(&inx[4*i..];..4));
         }
         for i in 0..4 {
-            st32(index_mut_4(&mut out[4*i..]), x[5*i]);
-            st32(index_mut_4(&mut out[16+4*i..]), x[6+i]);
+            st32(index_fixed!(&mut out[4*i..];..4), x[5*i]);
+            st32(index_fixed!(&mut out[16+4*i..];..4), x[6+i]);
         }
     } else {
         for i in 0..16 {
-            st32(index_mut_4(&mut out[4 * i..]), x[i] + y[i]);
+            st32(index_fixed!(&mut out[4 * i..];..4), x[i] + y[i]);
         }
     }
 }
 
-pub fn core_salsa20(out: &mut [u8;64], inx: &[u8;16], k: &[u8;32], c: &[u8;16])
+/* XXX: public in tweet-nacl */
+fn core_salsa20(out: &mut [u8;64], inx: &[u8;16], k: &[u8;32], c: &[u8;16])
 {
     core(out,inx,k,c,false);
 }
 
-pub fn core_hsalsa20(out: &mut [u8;32], inx: &[u8;16], k: &[u8;32], c: &[u8;16])
+/* XXX: public in tweet-nacl */
+fn core_hsalsa20(out: &mut [u8;32], inx: &[u8;16], k: &[u8;32], c: &[u8;16])
 {
     core(out,inx,k,c,true);
 }
 
 static SIGMA : &'static [u8;16] = b"expand 32-byte k";
 
-pub fn stream_salsa20_xor(mut c: &mut [u8], mut m: Option<&[u8]>, n: &[u8;8], k: &[u8;32])
+/* XXX: public in tweet-nacl */
+fn stream_salsa20_xor(mut c: &mut [u8], mut m: Option<&[u8]>, n: &[u8;8], k: &[u8;32])
 {
     let mut z = [0u8;16];
 
@@ -224,7 +210,8 @@ pub fn stream_salsa20_xor(mut c: &mut [u8], mut m: Option<&[u8]>, n: &[u8;8], k:
     }
 }
 
-pub fn stream_salsa20(c: &mut [u8], n : &[u8;8], k: &[u8;32])
+/* XXX: public in tweet-nacl */
+fn stream_salsa20(c: &mut [u8], n : &[u8;8], k: &[u8;32])
 {
     stream_salsa20_xor(c, None, n, k)
 }
@@ -236,15 +223,15 @@ pub type StreamKey = [u8;STREAM_KEY_LEN];
 pub fn stream(c: &mut [u8], n: &StreamNonce, k: &StreamKey)
 {
     let mut s = [0u8; 32];
-    core_hsalsa20(&mut s,index_16(&n[..]),k,SIGMA);
-    stream_salsa20(c,index_8(&n[16..]),&s)
+    core_hsalsa20(&mut s,index_fixed!(&n[..];..16),k,SIGMA);
+    stream_salsa20(c,index_fixed!(&n[16..];..8),&s)
 }
 
 pub fn stream_xor(c: &mut [u8], m: &[u8], n: &StreamNonce, k: &StreamKey)
 {
     let mut s = [0u8; 32];
-    core_hsalsa20(&mut s,index_16(&n[..]),k,SIGMA);
-    stream_salsa20_xor(c,Some(m),index_8(&n[16..]), &s)
+    core_hsalsa20(&mut s,index_fixed!(&n[..];..16),k,SIGMA);
+    stream_salsa20_xor(c,Some(m),index_fixed!(&n[16..];..8), &s)
 }
 
 fn add1305(h: &mut [u32; 17], c: &[u32; 17])
@@ -269,13 +256,8 @@ pub type OnetimeauthHash = [u8;ONETIMEAUTH_HASH_LEN];
 pub fn onetimeauth(out: &mut OnetimeauthHash, mut m: &[u8], k: &OnetimeauthKey)
 {
     /* FIXME: not zeroed in tweet-nacl */
-    let mut x = [0u32;17];
     let mut r = [0u32;17];
     let mut h = [0u32;17];
-    /* FIXME: not zeroed in tweet-nacl */
-    let mut c = [0u32;17];
-    /* FIXME: not zeroed in tweet-nacl */
-    let mut g = [0u32;17];
 
     for j in 0..16 {
         r[j] = k[j] as u32;
@@ -290,9 +272,7 @@ pub fn onetimeauth(out: &mut OnetimeauthHash, mut m: &[u8], k: &OnetimeauthKey)
     r[15]&=15;
 
     while m.len() > 0 {
-        for j in  0..17 {
-            c[j] = 0;
-        }
+        let mut c = [0u32;17];
 
         let j_end = cmp::min(m.len(), 16);
         for j in 0..j_end {
@@ -301,8 +281,8 @@ pub fn onetimeauth(out: &mut OnetimeauthHash, mut m: &[u8], k: &OnetimeauthKey)
         c[j_end] = 1;
         m = &m[j_end..];
         add1305(&mut h, &c);
+        let mut x = [0u32;17];
         for i in 0..17 {
-            x[i] = 0;
             for j in 0..17 {
                 x[i] += h[j] * (if j <= i { r[i - j] } else { 320 * r[i + 17 - j]});
             }
@@ -329,9 +309,7 @@ pub fn onetimeauth(out: &mut OnetimeauthHash, mut m: &[u8], k: &OnetimeauthKey)
         h[16] = u;
     }
 
-    for j in 0..17 {
-        g[j] = h[j];
-    }
+    let g = h;
     add1305(&mut h, &MINUSP);
     /* XXX: check signed cast */
     let s : u32 = (-((h[16] >> 7) as i32)) as u32;
@@ -339,6 +317,8 @@ pub fn onetimeauth(out: &mut OnetimeauthHash, mut m: &[u8], k: &OnetimeauthKey)
         h[j] ^= s & (g[j] ^ h[j]);
     }
 
+    /* FIXME: extra zeroing */
+    let mut c = [0u32;17];
     for j in 0..16 {
         c[j] = k[j + 16] as u32;
     }
@@ -371,10 +351,10 @@ pub fn secretbox(c: &mut [u8], m: &[u8], n: &SecretboxNonce, k: &SecretboxKey) -
     {
         /* XXX: we avoid aliasing to make rust happy at the cost of an extra copy via @o */
         let (c_k, c_m) = c.split_at(32);
-        onetimeauth(&mut o, c_m, index_32(c_k));
+        onetimeauth(&mut o, c_m, index_fixed!(&c_k;..32));
     }
-    *index_mut_16(&mut c[16..32]) = o;
-    *index_mut_16(c) = [0u8;16];
+    *index_fixed!(&mut c[16..32];..16) = o;
+    *index_fixed!(&mut c;..16) = [0u8;16];
 
     Ok(())
 }
@@ -390,7 +370,7 @@ pub fn secretbox_open(m: &mut [u8], c: &[u8], n: &SecretboxNonce, k: &SecretboxK
     }
     let mut x = [0u8; 32];
     stream(&mut x,n,k);
-    if onetimeauth_verify(index_16(&c[16..]), &c[32..], &x) != 0 {
+    if onetimeauth_verify(index_fixed!(&c[16..];..16), &c[32..], &x) != 0 {
         return Err(());
     }
     stream_xor(m,c,n,k);
@@ -587,7 +567,7 @@ fn scalarmult(q: &mut [u8;32], n: &[u8;32], p: &[u8;32])
 
     z[31]=(n[31]&127)|64;
     z[0]&=248;
-    unpack25519(index_mut_16(&mut x),p);
+    unpack25519(index_fixed!(&mut x;..16),p);
     /* TODO: not init in tweet-nacl */
     let mut b = GF0;
     for i in 0..16 {
@@ -625,7 +605,7 @@ fn scalarmult(q: &mut [u8;32], n: &[u8;32], p: &[u8;32])
         gf_mult(&mut tmp,c,a);
         c = tmp;
         gf_mult(&mut a,d,f);
-        gf_mult(&mut d,b, *index_16(&x));
+        gf_mult(&mut d,b, *index_fixed!(&x;..16));
         gf_square(&mut b,e);
         sel25519(&mut a, &mut b, r as isize);
         sel25519(&mut c, &mut d, r as isize);
@@ -638,31 +618,35 @@ fn scalarmult(q: &mut [u8;32], n: &[u8;32], p: &[u8;32])
     }
     /* XXX: avoid aliasing with an extra copy */
     let mut tmp = [0i64;16];
-    inv25519(&mut tmp, *index_16(&x[32..]));
-    *index_mut_16(&mut x[32..]) = tmp;
+    inv25519(&mut tmp, *index_fixed!(&x[32..];..16));
+    *index_fixed!(&mut x[32..];..16) = tmp;
 
     /* XXX: avoid aliasing with an extra copy */
-    gf_mult(&mut tmp, *index_16(&x[16..]), *index_16(&x[32..]));
-    *index_mut_16(&mut x[16..]) = tmp;
-    pack25519(q, *index_16(&x[16..]));
+    gf_mult(&mut tmp, *index_fixed!(&x[16..];..16), *index_fixed!(&x[32..];..16));
+    *index_fixed!(&mut x[16..];..16) = tmp;
+    pack25519(q, *index_fixed!(&x[16..];..16));
 }
 
-pub fn scalarmult_base(q: &mut [u8;32], n: &[u8;32])
+/* XXX: public in tweet-nacl */
+fn scalarmult_base(q: &mut [u8;32], n: &[u8;32])
 {
     scalarmult(q, n, &C_9)
 }
 
 pub const BOX_SECRET_KEY_LEN : usize = 32;
 pub const BOX_PUBLIC_KEY_LEN : usize = 32;
+pub const BOX_NONCE_LEN : usize = 24;
 pub type BoxPublicKey = [u8; BOX_PUBLIC_KEY_LEN];
 pub type BoxSecretKey = [u8; BOX_SECRET_KEY_LEN];
+pub type BoxNonce = [u8; BOX_NONCE_LEN];
 pub fn box_keypair(pk: &mut BoxPublicKey, sk: &mut BoxSecretKey)
 {
     randombytes(&mut sk[..32]);
     scalarmult_base(pk,sk)
 }
 
-pub fn box_beforenm(k: &mut[u8;32], pk: &BoxPublicKey, sk: &BoxSecretKey)
+/* XXX: public in tweet-nacl */
+fn box_beforenm(k: &mut[u8;32], pk: &BoxPublicKey, sk: &BoxSecretKey)
 {
     /* TODO: uninit in tweet-nacl */
     let mut s = [0u8; 32];
@@ -670,17 +654,19 @@ pub fn box_beforenm(k: &mut[u8;32], pk: &BoxPublicKey, sk: &BoxSecretKey)
     core_hsalsa20(k, &C_0, &s, SIGMA)
 }
 
-pub fn box_afternm(c: &mut[u8], m: &[u8], n: &[u8;24], k: &[u8;32]) -> Result<(),()>
+/* XXX: public in tweet-nacl */
+fn box_afternm(c: &mut[u8], m: &[u8], n: &[u8;24], k: &[u8;32]) -> Result<(),()>
 {
     secretbox(c,m,n,k)
 }
 
-pub fn box_open_afternm(m: &mut[u8], c: &[u8], n: &[u8;24], k: &[u8;32]) -> Result<(),()>
+/* XXX: public in tweet-nacl */
+fn box_open_afternm(m: &mut[u8], c: &[u8], n: &[u8;24], k: &[u8;32]) -> Result<(),()>
 {
     secretbox_open(m,c,n,k)
 }
 
-pub fn box_(c: &mut [u8], m: &[u8], n: &[u8;24], pk: &BoxPublicKey, sk: &BoxSecretKey) -> Result<(),()>
+pub fn box_(c: &mut [u8], m: &[u8], n: &BoxNonce, pk: &BoxPublicKey, sk: &BoxSecretKey) -> Result<(),()>
 {
     assert_eq!(&m[..32], &[0u8;32]);
     /* FIXME: uninit in tweet-nacl */
@@ -689,13 +675,13 @@ pub fn box_(c: &mut [u8], m: &[u8], n: &[u8;24], pk: &BoxPublicKey, sk: &BoxSecr
     box_afternm(c,m,n, &k)
 }
 
-pub fn box_open(m : &mut [u8], c: &[u8], n: &[u8;24], y: &[u8;32], x: &[u8;32]) -> Result<(),()>
+pub fn box_open(m : &mut [u8], c: &[u8], n: &BoxNonce, pk: &BoxPublicKey, sk: &BoxSecretKey) -> Result<(),()>
 {
     assert_eq!(&c[..16], &[0u8;16]);
-    /* FIXME: k was not zeroed */
+    /* FIXME: uninit in tweet-nacl */
     let mut k = [0u8; 32];
-    box_beforenm(&mut k,y,x);
-    box_open_afternm(m,c,n, &k)
+    box_beforenm(&mut k,pk,sk);
+    box_open_afternm(m,c,n,&k)
 }
 
 fn r(x: W<u64>, c: usize) -> W<u64> { (x >> c) | (x << (64 - c)) }
@@ -729,7 +715,7 @@ const K : [u64;80] = [
     0x4cc5d4becb3e42b6, 0x597f299cfc657e2a, 0x5fcb6fab3ad6faec, 0x6c44198c4a475817
 ];
 
-fn hashblocks(x: &mut[u8], mut m: &[u8]) -> usize
+fn hashblocks(x: &mut [u8], mut m: &[u8]) -> usize
 {
     /* XXX: all uninit in tweet-nacl */
     let mut z = [W(0u64);8];
@@ -738,14 +724,14 @@ fn hashblocks(x: &mut[u8], mut m: &[u8]) -> usize
     let mut w = [W(0u64);16];
 
     for i in 0..8 {
-        let v = dl64(index_8(&x[8 * i..]));
+        let v = dl64(index_fixed!(&x[8 * i..];..8));
         z[i] = v;
         a[i] = v;
     }
 
     while m.len() >= 128 {
         for i in 0..16 {
-            w[i] = dl64(index_8(&m[8 * i..]));
+            w[i] = dl64(index_fixed!(&m[8 * i..];..8));
         }
 
         for i in 0..80 {
@@ -774,7 +760,7 @@ fn hashblocks(x: &mut[u8], mut m: &[u8]) -> usize
     }
 
     for i in 0..8 {
-        ts64(index_mut_8(&mut x[8*i..]),z[i].0);
+        ts64(index_fixed!(&mut x[8*i..];..8),z[i].0);
     }
 
     m.len()
@@ -792,7 +778,9 @@ const IV:[u8; 64] = [
 ];
 
 /* sha512 */
-pub fn hash(out: &mut [u8], mut m: &[u8])
+pub const HASH_LEN : usize = 64;
+pub type Hash = [u8;HASH_LEN];
+pub fn hash(out: &mut Hash, mut m: &[u8])
 {
     let mut h = IV;
 
@@ -818,7 +806,7 @@ pub fn hash(out: &mut [u8], mut m: &[u8])
     x[l] = (b >> 61) as u8;
     /* FIXME: check cast to u64 */
     let l = x.len() - 8;
-    ts64(index_mut_8(&mut x[l..]), (b<<3) as u64);
+    ts64(index_fixed!(&mut x[l..];..8), (b<<3) as u64);
     hashblocks(&mut h, &x);
 
     for i in 0..64 {
@@ -928,13 +916,13 @@ pub fn sign_keypair_seed(pk: &mut SignPublicKey, sk: &mut SignSecretKey, seed: &
     let mut d = [0u8; 64];
     let mut p = [GF0;4];
 
-    *index_mut_32(sk) = *seed;
+    *index_fixed!(&mut sk;..32) = *seed;
     hash(&mut d, &sk[..32]);
     d[0] &= 248;
     d[31] &= 127;
     d[31] |= 64;
 
-    scalarbase(&mut p, index_32(&d));
+    scalarbase(&mut p, index_fixed!(&d;..32));
     pack(pk,&p);
 
     for i in 0..32 {
@@ -998,17 +986,20 @@ fn reduce(r: &mut [u8;64])
     for i in 0..64 {
         r[i] = 0;
     }
-    mod_l(index_mut_32(r), &mut x);
+    mod_l(index_fixed!(&mut r;..32), &mut x);
 }
 
 /**
- * Generate an attached (ie: joined) signature for @m (the message). The signature is stored at the
- * beginning of @sm (signed message). @sm must be at exactly @m.len() + SIGN_LEN bytes long.
- * 
+ * Generate an attached (ie: joined) signature for a message
+ *
+ * The signature is stored at the beginning of @sm (signed message). @sm must be at exactly
+ * @m.len() + SIGN_LEN bytes long.
+ *
  * @sm is not read from, it is only used as an output parameter.
- * 
+ *
  * Panics:
- *  - @sm is not the right size.
+ *
+ * - @sm is not the right size.
  */
 pub fn sign_attached(sm: &mut [u8], m: &[u8], sk: &SignSecretKey)
 {
@@ -1035,8 +1026,8 @@ pub fn sign_attached(sm: &mut [u8], m: &[u8], sk: &SignSecretKey)
 
     hash(&mut r, &sm[32..][..m.len()+32]);
     reduce(&mut r);
-    scalarbase(&mut p, index_32(&r));
-    pack(index_mut_32(sm), &p);
+    scalarbase(&mut p, index_fixed!(&r;..32));
+    pack(index_fixed!(&mut sm;..32), &p);
 
     for i in 0..32 {
         sm[i+32] = sk[i+32];
@@ -1057,7 +1048,7 @@ pub fn sign_attached(sm: &mut [u8], m: &[u8], sk: &SignSecretKey)
         }
     }
 
-    mod_l(index_mut_32(&mut sm[32..]), &mut x);
+    mod_l(index_fixed!(&mut sm[32..];..32), &mut x);
 }
 
 /*
@@ -1135,7 +1126,20 @@ fn unpackneg(r: &mut [Gf;4], p: &[u8; 32]) -> isize /* int */
     return 0;
 }
 
-pub fn sign_open(m: &mut [u8], sm : &[u8], pk: &SignPublicKey) -> Result<usize, ()>
+/**
+ * verify an attached signature
+ *
+ * @m must have the same length as @sm.
+ *
+ * If verification failed, returns Err(()).
+ * Otherwise, returns the number of bytes in message & copies the message into @m
+ *
+ * Panics:
+ *
+ * - If m.len() != sm.len()
+ *
+ */
+pub fn sign_attached_open(m: &mut [u8], sm : &[u8], pk: &SignPublicKey) -> Result<usize, ()>
 {
     assert_eq!(m.len(), sm.len());
     let mut t = [0u8;32];
@@ -1161,16 +1165,16 @@ pub fn sign_open(m: &mut [u8], sm : &[u8], pk: &SignPublicKey) -> Result<usize, 
     }
     hash(&mut h, &m[..sm.len()]);
     reduce(&mut h);
-    inner_scalarmult(&mut p, &mut q, index_32(&h));
+    inner_scalarmult(&mut p, &mut q, index_fixed!(&h;..32));
 
-    scalarbase(&mut q, index_32(&sm[32..]));
+    scalarbase(&mut q, index_fixed!(&sm[32..];..32));
     add(&mut p, &q);
     pack(&mut t, &p);
 
 
     let n = sm.len() - 64;
     /* TODO: check if verify_32 should return a bool */
-    if verify_32(index_32(sm), &t) != 0 {
+    if verify_32(index_fixed!(&sm;..32), &t) != 0 {
         for i in 0..n {
             m[i] = 0;
         }
