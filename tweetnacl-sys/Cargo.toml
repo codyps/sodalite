@@ -1,6 +1,6 @@
 [package]
 name = "tweetnacl-sys"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Cody P Schafer <dev@codyps.com>"]
 build = "build.rs"
 repository = "https://github.com/jmesmon/sodalite.git"

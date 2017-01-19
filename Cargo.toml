@@ -1,6 +1,6 @@
 [package]
 name = "sodalite"
-version = "0.2.5"
+version = "0.2.6"
 authors = ["Cody P Schafer <dev@codyps.com>"]
 description = "Tweetnacl in pure rust with no std dependency"
 license = "Apache-2.0 OR MIT"
