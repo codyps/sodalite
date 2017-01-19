@@ -39,7 +39,7 @@ pub fn crypto_stream_salsa20_xor(mut c: &mut [u8], m: Option<&[u8]>, n: &[u8], k
         sys::crypto_stream_salsa20_tweet_xor(c.as_mut_ptr(), match m { Some(v) => v.as_ptr(), None => std::ptr::null() }, c.len() as sys::c_ulonglong, n.as_ptr(), k.as_ptr())
     };
 }
- 
+
 pub fn crypto_onetimeauth(out: &mut [u8;16], m: &[u8], k: &[u8;32])
 {
     unsafe {
