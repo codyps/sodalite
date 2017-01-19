@@ -1,3 +1,4 @@
+#![no_std]
 extern crate libc;
 
 pub use libc::{c_int,c_ulonglong,c_longlong};

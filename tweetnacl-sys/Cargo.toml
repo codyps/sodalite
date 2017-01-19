@@ -5,7 +5,7 @@ authors = ["Cody P Schafer <dev@codyps.com>"]
 build = "build.rs"
 repository = "https://github.com/jmesmon/sodalite.git"
 description = "tweetnacl & FFI bindings to it"
-keywords = [ "nacl", "crypto", "ffi"]
+keywords = [ "nacl", "crypto", "ffi", "no_std"]
 license = "MIT OR Apache-2.0"
 include = [ "Cargo.toml", "src/*.rs", "src/*.c", "src/*.h", "build.rs" ]
 
