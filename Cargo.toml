@@ -1,15 +1,18 @@
 [package]
 name = "sodalite"
-version = "0.2.4"
+version = "0.2.5"
 authors = ["Cody P Schafer <dev@codyps.com>"]
-description = "Tweetnacl in Pure Rust"
+description = "Tweetnacl in pure rust with no std dependency"
 license = "Apache-2.0 OR MIT"
 homepage = "https://github.com/jmesmon/sodalite"
 repository = "https://github.com/jmesmon/sodalite.git"
-documentation = "https://docs.rs/sodalite/0.2.4/sodalite/"
+documentation = "https://docs.rs/sodalite/0.2.5/sodalite/"
 keywords = [ "sodium", "crypto", "nacl", "no_std"]
 readme = "README.md"
-include = ["Cargo.toml", "src/*.rs" ]
+include = ["Cargo.toml", "src/*.rs", "README.md", "tests/*.rs" ]
+
+[features]
+docs = ["rand"]
 
 [dependencies]
 rand = { version = "0.*", optional = true }
