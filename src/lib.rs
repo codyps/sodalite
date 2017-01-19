@@ -1,9 +1,4 @@
-// test needs std for vec![]
-#![cfg_attr(not(test), no_std)]
-
-// inverse of "no_std" inclusion
-#[cfg(test)]
-extern crate core;
+#![no_std]
 
 use core::cmp;
 use core::num::Wrapping as W;

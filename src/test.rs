@@ -119,11 +119,13 @@ fn stream_salsa20_xor() {
 
         // 1024 is arbitrary
         let b = rng.gen_range(0, 1024);
+        let mut out1_b = [0u8;1024];
+        let mut out2_b = [0u8;1024];
 
-        let mut out1 = vec![0u8;b];
-        super::stream_salsa20_xor(&mut out1, None, &n, &c);
-        let mut out2 = vec![0u8;b];
-        tweetnacl::crypto_stream_salsa20_xor(&mut out2, None, &n, &c);
+        let out1 = &mut out1_b[0..b];
+        super::stream_salsa20_xor(out1, None, &n, &c);
+        let out2 = &mut out2_b[0..b];
+        tweetnacl::crypto_stream_salsa20_xor(out2, None, &n, &c);
         assert_eq!(&out1[..], &out2[..]);
     })
 }
