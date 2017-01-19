@@ -1,12 +1,10 @@
-/*
- * TODO: add test vectors
- */
+#![cfg(test)]
 
-extern crate tweetnacl;
+extern crate core;
 extern crate rand;
+extern crate tweetnacl;
 
-use rand::Rng;
-use std;
+use self::rand::Rng;
 
 fn prob_test<T: FnMut()>(ct: u64, mut t: T) {
     for _ in 0..ct {
@@ -19,42 +17,46 @@ fn hashblock() {
     let mut rng = rand::thread_rng();
     prob_test(10, || {
         // 1 KiB, arbitrary
-        let len = rng.gen_range(std::usize::MIN, 1024);
-
-        let mut b = vec![0u8;len];
-        rng.fill_bytes(&mut b);
+        let len = rng.gen_range(core::usize::MIN, 1024);
+        let mut back = [0u8;1024];
+        let b = &mut back[0..len];
+        rng.fill_bytes(b);
 
         let mut hash1 = [0u8;64];
-        let v1 = super::hashblocks(&mut hash1, &b);
+        let v1 = super::hashblocks(&mut hash1, b);
 
         let mut hash2 = [0u8;64];
-        let v2 = tweetnacl::crypto_hashblocks_sha512(&mut hash2, &b);
+        let v2 = tweetnacl::crypto_hashblocks_sha512(&mut hash2, b);
 
         assert_eq!(&hash1[..], &hash2[..]);
         assert_eq!(v1, v2);
     })
 }
 
+
 #[test]
-fn hash() {
+fn mod_l() {
     let mut rng = rand::thread_rng();
+
     prob_test(10, || {
-        // 1 KiB, arbitrary
-        let len = rng.gen_range(std::usize::MIN, 1024);
-        //let len = 127;
+        let mut r = [0u8;32];
+        let mut x = [0i64;64];
 
-        println!("length: {}", len);
+        rng.fill_bytes(&mut r[..]);
+        for v in x.iter_mut() {
+            *v = rng.gen::<u16>() as i64;
+        }
 
-        let mut b = vec![0u8;len];
-        rng.fill_bytes(&mut b);
+        let mut r2 = r;
+        let mut x2 = x;
 
-        let mut hash1 = [0u8;64];
-        super::hash(&mut hash1, &b);
-        let mut hash2 = [0u8;64];
-        tweetnacl::crypto_hash_sha512(&mut hash2, &b);
+        super::mod_l(&mut r, &mut x);
+        tweetnacl::crypto_mod_l(&mut r2, &mut x2);
 
-        assert_eq!(&hash1[..], &hash2[..]);
+        assert_eq!(&r[..], &r2[..]);
+        assert_eq!(&x[..], &x2[..])
     })
+
 }
 
 #[test]
@@ -127,63 +129,6 @@ fn stream_salsa20_xor() {
 }
 
 #[test]
-fn onetimeauth() {
-    let mut rng = rand::thread_rng();
-
-    prob_test(10, || {
-        let len = rng.gen_range(std::usize::MIN, 1024);
-        println!("length: {}", len);
-
-        let mut m = vec![0u8;len];
-        rng.fill_bytes(&mut m);
-
-        let mut k = [0u8;32];
-        rng.fill_bytes(&mut k);
-
-        let mut out1 = [0u8;16];
-        super::onetimeauth(&mut out1, &m, &k);
-        let mut out2 = [0u8;16];
-        tweetnacl::crypto_onetimeauth(&mut out2, &m, &k);
-        assert_eq!(&out1[..], &out2[..]);
-
-        let r1 = super::onetimeauth_verify(&out1, &m, &k);
-        let r2 = tweetnacl::crypto_onetimeauth_verify(&out2, &m, &k);
-        assert_eq!(r1, r2);
-    })
-}
-
-#[test]
-fn stream() {
-    let mut rng = rand::thread_rng();
-
-    prob_test(10, || {
-        let len = rng.gen_range(0, 1024);
-        println!("length: {}", len);
-
-        let mut m = vec![0u8;len];
-        rng.fill_bytes(&mut m);
-
-        let mut n = [0u8;24];
-        rng.fill_bytes(&mut n);
-
-        let mut k = [0u8;32];
-        rng.fill_bytes(&mut k);
-
-        let mut out1 = vec![0u8;len];
-        super::stream(&mut out1, &n, &k);
-        let mut out2 = vec![0u8;len];
-        tweetnacl::crypto_stream(&mut out2, &n, &k);
-        assert_eq!(&out1[..], &out2[..]);
-
-        let mut out1 = vec![0u8;len];
-        super::stream_xor(&mut out1, &m, &n, &k);
-        let mut out2 = vec![0u8;len];
-        tweetnacl::crypto_stream_xor(&mut out2, &m, &n, &k);
-        assert_eq!(&out1[..], &out2[..]);
-    })
-}
-
-#[test]
 fn scalarmult() {
     let mut rng = rand::thread_rng();
 
@@ -199,153 +144,3 @@ fn scalarmult() {
     })
 }
 
-#[test]
-fn box_() {
-    let mut rng = rand::thread_rng();
-
-    prob_test(10, || {
-        // max length is arbitrary, 32 is minimum size of crypo_box and must be zeroed.
-        let len = rng.gen_range(32, 1024);
-        println!("length: {}", len);
-
-        let mut m = vec![0u8;len];
-        rng.fill_bytes(&mut m[32..]);
-
-        let mut n = [0u8;24];
-        rng.fill_bytes(&mut n);
-
-        let mut pk = [0u8;32];
-        let mut sk = [0u8;32];
-
-        super::box_keypair(&mut pk, &mut sk);
-
-        let mut out1 = vec![0u8;len];
-        super::box_(&mut out1, &m, &n, &pk, &sk).unwrap();
-        let mut out2 = vec![0u8;len];
-        tweetnacl::crypto_box(&mut out2, &m, &n, &pk, &sk).unwrap();
-        assert_eq!(&out1[..], &out2[..]);
-
-        let mut dec1 = vec![0u8;len];
-        super::box_open(&mut dec1, &out1, &n, &pk, &sk).unwrap();
-        let mut dec2 = vec![0u8;len];
-        tweetnacl::crypto_box_open(&mut dec2, &out2, &n, &pk, &sk).unwrap();
-        assert_eq!(dec1, dec2);
-        assert_eq!(dec1, m);
-
-
-        /* TODO: "corrupt" some data and ensure it doesn't open the box */
-    })
-}
-
-#[test]
-fn secretbox() {
-    let mut rng = rand::thread_rng();
-
-    prob_test(10, || {
-        // upper bound is arbitrary, 32 is required minimum length by secretbox, but doesn't trigger
-        // any encryption (need +1 for that).
-        let len = rng.gen_range(33, 1024);
-        println!("length: {}", len);
-
-        let mut m = vec![0u8;len];
-        rng.fill_bytes(&mut m[32..]);
-
-        let mut n = [0u8;24];
-        rng.fill_bytes(&mut n);
-
-        let mut k = [0u8;32];
-        rng.fill_bytes(&mut k);
-
-        let mut out1 = vec![0u8;len];
-        super::secretbox(&mut out1, &m, &n, &k).unwrap();
-        let mut out2 = vec![0u8;len];
-        tweetnacl::crypto_secretbox(&mut out2, &m, &n, &k).unwrap();
-        assert_eq!(&out1[..], &out2[..]);
-
-        let mut dec1 = vec![0u8;len];
-        super::secretbox_open(&mut dec1, &out1, &n, &k).unwrap();
-        let mut dec2 = vec![0u8;len];
-        tweetnacl::crypto_secretbox_open(&mut dec2, &out2, &n, &k).unwrap();
-        assert_eq!(dec1, dec2);
-        assert_eq!(dec1, m);
-
-
-        /* TODO: "corrupt" some data and ensure it doesn't open the box */
-    })
-}
-
-#[test]
-fn sign() {
-    let mut rng = rand::thread_rng();
-
-    prob_test(10, || {
-        // max length is arbitrary
-        let len = rng.gen_range(0, 1024);
-        println!("length: {}", len);
-
-        let mut m = vec![0u8;len];
-        rng.fill_bytes(&mut m);
-
-        let mut pk = [0u8;super::SIGN_PUBLIC_KEY_LEN];
-        let mut sk = [0u8;super::SIGN_SECRET_KEY_LEN];
-        let mut pk2 = [0u8;super::SIGN_PUBLIC_KEY_LEN];
-        let mut sk2 = [0u8;super::SIGN_SECRET_KEY_LEN];
-
-        let mut seed = [0u8;super::SIGN_PUBLIC_KEY_LEN];
-        rng.fill_bytes(&mut seed);
-
-        super::sign_keypair_seed(&mut pk, &mut sk, &seed);
-        tweetnacl::crypto_sign_keypair_seed(&mut pk2, &mut sk2, &seed);
-
-        assert_eq!(&pk[..], &pk2[..]);
-        assert_eq!(&sk[..], &sk2[..]);
-
-        let n = len + super::SIGN_LEN;
-        let mut out1 = vec![0u8;n];
-        super::sign_attached(&mut out1, &m, &sk);
-        let mut out2 = vec![0u8;n];
-        tweetnacl::crypto_sign(&mut out2, &m, &sk);
-        assert_eq!(out1, out2);
-
-        let mut dec1 = vec![0u8;n];
-        let v = super::sign_attached_open(&mut dec1, &out1, &pk).unwrap();
-        dec1.truncate(v);
-        let mut dec2 = vec![0u8;n];
-        let v = tweetnacl::crypto_sign_open(&mut dec2, &out2, &pk).unwrap();
-        dec2.truncate(v);
-        assert_eq!(dec1, dec2);
-        assert_eq!(dec1, m);
-
-        /* TODO: corrupt and check the signature does not verify */
-    })
-}
-
-#[test]
-fn mod_l() {
-    let mut rng = rand::thread_rng();
-
-    prob_test(10, || {
-        // max length is arbitrary
-        let len = rng.gen_range(0, 1);
-        println!("length: {}", len);
-
-        let mut r = [0u8;32];
-        let mut x = [0i64;64];
-
-        rng.fill_bytes(&mut r[..]);
-        for v in x.iter_mut() {
-            *v = rng.gen::<u16>() as i64;
-        }
-
-        let mut r2 = r;
-        let mut x2 = x;
-
-        super::mod_l(&mut r, &mut x);
-        tweetnacl::crypto_mod_l(&mut r2, &mut x2);
-
-        assert_eq!(&r[..], &r2[..]);
-        assert_eq!(&x[..], &x2[..])
-
-    })
-
-}
