@@ -7,7 +7,7 @@ license = "Apache-2.0 OR MIT"
 homepage = "https://github.com/jmesmon/sodalite"
 repository = "https://github.com/jmesmon/sodalite.git"
 documentation = "https://docs.rs/sodalite/0.2.4/sodalite/"
-keywords = [ "sodium", "crypto", "nacl" ]
+keywords = [ "sodium", "crypto", "nacl", "no_std"]
 readme = "README.md"
 include = ["Cargo.toml", "src/*.rs" ]
 
