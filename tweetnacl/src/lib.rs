@@ -1,3 +1,5 @@
+#![no_std]
+
 extern crate tweetnacl_sys as sys;
 
 #[cfg(test)]
@@ -36,7 +38,7 @@ pub fn crypto_stream_salsa20_xor(mut c: &mut [u8], m: Option<&[u8]>, n: &[u8], k
 {
     m.map(|x| assert_eq!(x.len(), c.len()));
     unsafe {
-        sys::crypto_stream_salsa20_tweet_xor(c.as_mut_ptr(), match m { Some(v) => v.as_ptr(), None => std::ptr::null() }, c.len() as sys::c_ulonglong, n.as_ptr(), k.as_ptr())
+        sys::crypto_stream_salsa20_tweet_xor(c.as_mut_ptr(), match m { Some(v) => v.as_ptr(), None => core::ptr::null() }, c.len() as sys::c_ulonglong, n.as_ptr(), k.as_ptr())
     };
 }
 
@@ -181,13 +183,16 @@ pub fn crypto_sign_keypair_seed(pk: &mut [u8;32], sk: &mut [u8;64], seed: &[u8;3
 
 pub fn crypto_mod_l(r: &mut [u8;32], x: &mut [i64;64])
 {
-    let mut x_sys : Vec<_> = (&x[..]).iter().cloned().map(|x| x as sys::c_longlong).collect();
+    let mut x_sys = [0 as sys::c_longlong;64];
+    for (i, v) in x.into_iter().enumerate() {
+        x_sys[i] = *v as sys::c_longlong;
+    }
     unsafe {
         sys::crypto_modL_tweet(r.as_mut_ptr(), x_sys.as_mut_ptr());
     };
 
     for (i, v) in x_sys.into_iter().enumerate() {
-        x[i] = v;
+        x[i] = *v;
     }
 }
 
@@ -197,16 +202,17 @@ fn hashblocks_sha512_twice_eq() {
     let mut rng = rand::thread_rng();
 
     // 1 KiB, arbitrary
-    let len = rng.gen_range(std::usize::MIN, 1024);
+    let len = rng.gen_range(core::usize::MIN, 1024);
+    let mut b_buf = [0u8;1024];
 
-    let mut b = vec![0u8;len];
-    rng.fill_bytes(&mut b);
+    let b = &mut b_buf[..len];
+    rng.fill_bytes(b);
 
     let mut hash1 = [0u8;64];
-    let v1 = crypto_hashblocks_sha512(&mut hash1, &b);
+    let v1 = crypto_hashblocks_sha512(&mut hash1, b);
 
     let mut hash2 = [0u8;64];
-    let v2 = crypto_hashblocks_sha512(&mut hash2, &b);
+    let v2 = crypto_hashblocks_sha512(&mut hash2, b);
 
     assert_eq!(&hash1[..], &hash2[..]);
     assert_eq!(v1, v2);
