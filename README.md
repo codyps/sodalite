@@ -17,8 +17,6 @@ Note: we should be exposing a consistent API across platforms, but we do generat
   - add a buffer and/or "set-only" abstraction to prevent unsafety wrt uninitialized values (also should allow some internal optimization).
   - sodiumoxide style API that returns values rather than taking mutable refs
  - Use namespacing to seperate different APIs and backend impls
- - Provide type aliases for existing fixed arrays
- - Split out `index_N` and `index_mut_N` functions into a seperate crate
  - start testing against sodiumoxide as well
  - Provide some of the API impovements from libsodium that are missing nacl (disjoint signatures, not requiring special extra space in buffers)
 
