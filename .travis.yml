@@ -9,83 +9,83 @@ apt:
 
 matrix:
   include:
-    # Stable channel
+    # armhf linux
     - os: linux
       env: TARGET_ARCH=arm TARGET_VENDOR=-unknown TARGET_OS=linux-gnueabihf CHANNEL=stable
-      # Extra packages only for this job
       addons:
         apt:
-          packages: &arm_unknown_linux_gnueabihf
+          packages: &armhf
             # Cross compiler and cross compiled C libraries
             - gcc-arm-linux-gnueabihf
             - libc6-armhf-cross
             - libc6-dev-armhf-cross
             # Emulator
             - qemu-user
-    - os: osx
-      env: TARGET_ARCH=i686 TARGET_VENDOR=-apple TARGET_OS=darwin CHANNEL=stable
+    - os: linux
+      env: TARGET_ARCH=arm TARGET_VENDOR=-unknown TARGET_OS=linux-gnueabihf CHANNEL=beta
+      addons:
+        apt:
+          packages: *armhf
+    - os: linux
+      env: TARGET_ARCH=arm TARGET_VENDOR=-unknown TARGET_OS=linux-gnueabihf CHANNEL=nightly
+      addons:
+        apt:
+          packages: *armhf
+    # i686 linux
     - os: linux
       env: TARGET_ARCH=i686 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu CHANNEL=stable
       addons:
         apt:
-          packages: &i686_unknown_linux_gnu
+          packages: &i686-linux
             # Cross compiler and cross compiled C libraries
             - gcc-multilib
-    - os: osx
-      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-apple TARGET_OS=darwin CHANNEL=stable
-    - os: linux
-      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu CHANNEL=stable
-    - os: linux
-      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-musl CHANNEL=stable
-    # Beta channel
-    - os: linux
-      env: TARGET_ARCH=arm TARGET_VENDOR=-unknown TARGET_OS=linux-gnueabihf CHANNEL=beta
-      addons:
-        apt:
-          # Use the same packages the stable version uses
-          packages: *arm_unknown_linux_gnueabihf
-    - os: osx
-      env: TARGET_ARCH=i686 TARGET_VENDOR=-apple TARGET_OS=darwin CHANNEL=beta
-    - os: linux
-      env: TARGET_ARCH=i686 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu CHANNEL=beta
-      addons:
-        apt:
-          packages: *i686_unknown_linux_gnu
-    - os: osx
-      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-apple TARGET_OS=darwin CHANNEL=beta
-    - os: linux
-      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu CHANNEL=beta
-    - os: linux
-      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-musl CHANNEL=beta
-    # Nightly channel
-    - os: linux
-      env: TARGET_ARCH=arm TARGET_VENDOR=-unknown TARGET_OS=linux-gnueabihf CHANNEL=nightly
-      addons:
-        apt:
-          # Use the same packages the stable version uses
-          packages: *arm_unknown_linux_gnueabihf
-    - os: osx
-      env: TARGET_ARCH=i686 TARGET_VENDOR=-apple TARGET_OS=darwin CHANNEL=nightly
     - os: linux
       env: TARGET_ARCH=i686 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu CHANNEL=nightly
       addons:
         apt:
-          packages: *i686_unknown_linux_gnu
-    - os: osx
-      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-apple TARGET_OS=darwin CHANNEL=nightly
+          packages: *i686-linux
     - os: linux
-      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu CHANNEL=nightly
+      env: TARGET_ARCH=i686 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu CHANNEL=beta
+      addons:
+        apt:
+          packages: *i686-linux
+    # musl
+    - os: linux
+      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-musl CHANNEL=stable
+      addons:
+        apt:
+          packages: &musl
+            - musl
+    - os: linux
+      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-musl CHANNEL=beta
+      addons:
+        apt:
+          packages: *musl
     - os: linux
       env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-musl CHANNEL=nightly
-  allow_failures:
-    # NOTE This target appears to be broken on Rust 1.7.0 and on nightlies :/
-    # TODO You may want to remove this entry by the time Rust 1.8.0 is out
+      addons:
+        apt:
+          packages: *musl
+    # x86-64 linux
     - os: linux
-      env: TARGET_ARCH=arm TARGET_VENDOR=-unknown TARGET_OS=linux-gnueabihf CHANNEL=stable
+      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu CHANNEL=stable
     - os: linux
-      env: TARGET_ARCH=arm TARGET_VENDOR=-unknown TARGET_OS=linux-gnueabihf CHANNEL=nightly
+      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu CHANNEL=beta
     - os: linux
-      env: TARGET_ARCH=arm TARGET_VENDOR=-unknown TARGET_OS=linux-gnueabihf CHANNEL=beta
+      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu CHANNEL=nightly
+    # osX
+    - os: osx
+      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-apple TARGET_OS=darwin CHANNEL=nightly
+    - os: osx
+      env: TARGET_ARCH=i686 TARGET_VENDOR=-apple TARGET_OS=darwin CHANNEL=nightly
+    - os: osx
+      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-apple TARGET_OS=darwin CHANNEL=stable
+    - os: osx
+      env: TARGET_ARCH=i686 TARGET_VENDOR=-apple TARGET_OS=darwin CHANNEL=stable
+    - os: osx
+      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-apple TARGET_OS=darwin CHANNEL=beta
+    - os: osx
+      env: TARGET_ARCH=i686 TARGET_VENDOR=-apple TARGET_OS=darwin CHANNEL=beta
 
 install:
   - export PATH="$PATH:~/multirust/bin"
