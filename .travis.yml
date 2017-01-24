@@ -12,7 +12,7 @@ matrix:
   include:
     # armhf linux
     - os: linux
-      env: TARGET_ARCH=arm TARGET_VENDOR=-unknown TARGET_OS=linux-gnueabihf CHANNEL=stable
+      env: TARGET_ARCH=arm TARGET_VENDOR=-unknown TARGET_OS=linux-gnueabihf TRAVIS_RUST_VERSION=stable
       addons:
         apt:
           packages: &armhf
@@ -23,70 +23,70 @@ matrix:
             # Emulator
             - qemu-user
     - os: linux
-      env: TARGET_ARCH=arm TARGET_VENDOR=-unknown TARGET_OS=linux-gnueabihf CHANNEL=beta
+      env: TARGET_ARCH=arm TARGET_VENDOR=-unknown TARGET_OS=linux-gnueabihf TRAVIS_RUST_VERSION=beta
       addons:
         apt:
           packages: *armhf
     - os: linux
-      env: TARGET_ARCH=arm TARGET_VENDOR=-unknown TARGET_OS=linux-gnueabihf CHANNEL=nightly
+      env: TARGET_ARCH=arm TARGET_VENDOR=-unknown TARGET_OS=linux-gnueabihf TRAVIS_RUST_VERSION=nightly
       addons:
         apt:
           packages: *armhf
     # i686 linux
     - os: linux
-      env: TARGET_ARCH=i686 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu CHANNEL=stable
+      env: TARGET_ARCH=i686 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu TRAVIS_RUST_VERSION=stable
       addons:
         apt:
           packages: &i686-linux
             # Cross compiler and cross compiled C libraries
             - gcc-multilib
     - os: linux
-      env: TARGET_ARCH=i686 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu CHANNEL=nightly
+      env: TARGET_ARCH=i686 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu TRAVIS_RUST_VERSION=nightly
       addons:
         apt:
           packages: *i686-linux
     - os: linux
-      env: TARGET_ARCH=i686 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu CHANNEL=beta
+      env: TARGET_ARCH=i686 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu TRAVIS_RUST_VERSION=beta
       addons:
         apt:
           packages: *i686-linux
     # musl
     - os: linux
-      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-musl CHANNEL=stable
+      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-musl TRAVIS_RUST_VERSION=stable
       addons:
         apt:
           packages: &musl
             - musl
     - os: linux
-      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-musl CHANNEL=beta
+      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-musl TRAVIS_RUST_VERSION=beta
       addons:
         apt:
           packages: *musl
     - os: linux
-      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-musl CHANNEL=nightly
+      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-musl TRAVIS_RUST_VERSION=nightly
       addons:
         apt:
           packages: *musl
     # x86-64 linux
     - os: linux
-      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu CHANNEL=stable DO_DOC=true
+      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu TRAVIS_RUST_VERSION=stable DO_DOC=true
     - os: linux
-      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu CHANNEL=beta DO_DOC=true
+      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu TRAVIS_RUST_VERSION=beta DO_DOC=true
     - os: linux
-      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu CHANNEL=nightly DO_DOC=true
+      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu TRAVIS_RUST_VERSION=nightly DO_DOC=true
     # osX
     - os: osx
-      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-apple TARGET_OS=darwin CHANNEL=nightly
+      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-apple TARGET_OS=darwin TRAVIS_RUST_VERSION=nightly
     - os: osx
-      env: TARGET_ARCH=i686 TARGET_VENDOR=-apple TARGET_OS=darwin CHANNEL=nightly
+      env: TARGET_ARCH=i686 TARGET_VENDOR=-apple TARGET_OS=darwin TRAVIS_RUST_VERSION=nightly
     - os: osx
-      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-apple TARGET_OS=darwin CHANNEL=stable
+      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-apple TARGET_OS=darwin TRAVIS_RUST_VERSION=stable
     - os: osx
-      env: TARGET_ARCH=i686 TARGET_VENDOR=-apple TARGET_OS=darwin CHANNEL=stable
+      env: TARGET_ARCH=i686 TARGET_VENDOR=-apple TARGET_OS=darwin TRAVIS_RUST_VERSION=stable
     - os: osx
-      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-apple TARGET_OS=darwin CHANNEL=beta
+      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-apple TARGET_OS=darwin TRAVIS_RUST_VERSION=beta
     - os: osx
-      env: TARGET_ARCH=i686 TARGET_VENDOR=-apple TARGET_OS=darwin CHANNEL=beta
+      env: TARGET_ARCH=i686 TARGET_VENDOR=-apple TARGET_OS=darwin TRAVIS_RUST_VERSION=beta
 
 install:
   - export PATH="$PATH:~/.cargo/bin"
