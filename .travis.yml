@@ -56,7 +56,7 @@ matrix:
       addons:
         apt:
           packages: &musl
-            - musl
+            - musl-tools
     - os: linux
       env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-musl TRAVIS_RUST_VERSION=beta
       addons:
