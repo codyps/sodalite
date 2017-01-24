@@ -1,6 +1,6 @@
 # ex: ts=2 sw=2 sts=2 et
 sudo: false
-distro: trusty
+dist: trusty
 
 language: generic
 
