@@ -1,14 +1,41 @@
-use std::cmp;
-use std::num::Wrapping as W;
-extern crate rand;
+#![no_std]
+
+use core::cmp;
+use core::num::Wrapping as W;
 
 #[macro_use]
 extern crate index_fixed;
 
-#[cfg(test)]
 mod test;
 
-use rand::Rng;
+#[cfg(features = "rand")]
+mod rand {
+    extern crate rand;
+    use self::rand::Rng;
+
+    fn randombytes(x: &mut [u8])
+    {
+        let mut rng = rand::OsRng::new().unwrap();
+        rng.fill_bytes(x);
+    }
+
+    pub fn box_keypair(pk: &mut BoxPublicKey, sk: &mut BoxSecretKey)
+    {
+        let mut seed = [0u8;32];
+        randombytes(&mut seed);
+        box_keypair_seed(pk, sk, &seed);
+    }
+
+    pub fn sign_keypair(pk: &mut SignPublicKey, sk: &mut SignSecretKey)
+    {
+        let mut seed = [0u8;32];
+        randombytes(&mut seed);
+        sign_keypair_seed(pk, sk, &seed);
+    }
+}
+
+#[cfg(features = "rand")]
+pub use rand::*;
 
 type Gf = [i64;16];
 const GF0 : Gf = [0; 16];
@@ -23,12 +50,6 @@ const D2:Gf = [0xf159, 0x26b2, 0x9b94, 0xebd6, 0xb156, 0x8283, 0x149a, 0x00e0, 0
 const X: Gf = [0xd51a, 0x8f25, 0x2d60, 0xc956, 0xa7b2, 0x9525, 0xc760, 0x692c, 0xdc5c, 0xfdd6, 0xe231, 0xc0a4, 0x53fe, 0xcd6e, 0x36d3, 0x2169];
 const Y: Gf = [0x6658, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666];
 const I: Gf = [0xa0b0, 0x4a0e, 0x1b27, 0xc4ee, 0xe478, 0xad2f, 0x1806, 0x2f43, 0xd7a7, 0x3dfb, 0x0099, 0x2b4d, 0xdf0b, 0x4fc1, 0x2480, 0x2b83];
-
-fn randombytes(x: &mut [u8])
-{
-    let mut rng = rand::OsRng::new().unwrap();
-    rng.fill_bytes(x);
-}
 
 fn l32(x: W<u32>, c: usize /* int */) -> W<u32>
 {
@@ -639,9 +660,10 @@ pub const BOX_NONCE_LEN : usize = 24;
 pub type BoxPublicKey = [u8; BOX_PUBLIC_KEY_LEN];
 pub type BoxSecretKey = [u8; BOX_SECRET_KEY_LEN];
 pub type BoxNonce = [u8; BOX_NONCE_LEN];
-pub fn box_keypair(pk: &mut BoxPublicKey, sk: &mut BoxSecretKey)
+
+pub fn box_keypair_seed(pk: &mut BoxPublicKey, sk: &mut BoxSecretKey, seed: &[u8; 32])
 {
-    randombytes(&mut sk[..32]);
+    *sk = *seed;
     scalarmult_base(pk,sk)
 }
 
@@ -928,13 +950,6 @@ pub fn sign_keypair_seed(pk: &mut SignPublicKey, sk: &mut SignSecretKey, seed: &
     for i in 0..32 {
         sk[32 + i] = pk[i];
     }
-}
-
-pub fn sign_keypair(pk: &mut SignPublicKey, sk: &mut SignSecretKey)
-{
-    let mut seed = [0u8;32];
-    randombytes(&mut seed);
-    sign_keypair_seed(pk, sk, &seed);
 }
 
 const L: [u64; 32] = [0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c, 0xf7, 0xa2, 0xde, 0xf9, 0xde, 0x14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x10];
