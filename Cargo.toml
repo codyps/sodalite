@@ -21,3 +21,5 @@ index-fixed = "0.0.*"
 [dev-dependencies]
 tweetnacl = { path = "tweetnacl", version = "0.*" }
 rand = "0.*"
+
+[workspace]

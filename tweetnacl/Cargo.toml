@@ -3,10 +3,12 @@ name = "tweetnacl"
 version = "0.1.2"
 authors = ["Cody P Schafer <dev@codyps.com>"]
 repository = "https://github.com/jmesmon/sodalite.git"
+documentation = "https://docs.rs/tweetnacl"
 description = "A rust api for using tweetnacl"
 keywords = [ "nacl", "crypto", "no_std" ]
 license = "MIT OR Apache-2.0"
 include = [ "Cargo.toml", "src/*.rs" ]
+workspace = ".."
 
 [dependencies]
 tweetnacl-sys = { path = "../tweetnacl-sys", version = "0.*" }
