@@ -8,6 +8,8 @@ apt:
   packages:
     - libsodium
 
+env: DIRS=". tweetnacl tweetnacl-sys"
+
 matrix:
   include:
     # armhf linux
