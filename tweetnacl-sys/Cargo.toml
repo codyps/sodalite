@@ -6,10 +6,15 @@ build = "build.rs"
 repository = "https://github.com/jmesmon/sodalite.git"
 documentation = "https://docs.rs/tweetnacl-sys"
 description = "tweetnacl & FFI bindings to it"
-keywords = [ "nacl", "crypto", "ffi", "no_std"]
 license = "MIT OR Apache-2.0"
 include = [ "Cargo.toml", "src/*.rs", "src/*.c", "src/*.h", "build.rs" ]
 workspace = ".."
+keywords = [ "nacl", "cryptography", "ffi", "no_std"]
+categories = [ "cryptography", "external-ffi-bindings" ]
+
+[badges]
+travis-ci = { repository = "jmesmon/sodalite" }
+appveyor = { repository = "jmesmon/sodalite" }
 
 [dependencies]
 libc = "0.*"

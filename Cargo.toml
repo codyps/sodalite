@@ -7,9 +7,15 @@ license = "Apache-2.0 OR MIT"
 homepage = "https://github.com/jmesmon/sodalite"
 repository = "https://github.com/jmesmon/sodalite.git"
 documentation = "https://docs.rs/sodalite/0.2.6/sodalite/"
-keywords = [ "sodium", "crypto", "nacl", "no_std"]
 readme = "README.md"
 include = ["Cargo.toml", "src/*.rs", "README.md", "tests/*.rs" ]
+
+keywords = [ "sodium", "cryptography", "nacl", "no_std"]
+categories = [ "cryptography" ]
+
+[badges]
+travis-ci = { repository = "jmesmon/sodalite" }
+appveyor = { repository = "jmesmon/sodalite" }
 
 [features]
 docs = ["rand"]
