@@ -823,7 +823,7 @@ pub fn hash(out: &mut Hash, mut m: &[u8])
     x[m.len()] = 128;
 
     let new_len = 256-(if m.len()<112 {128} else {0});
-    let mut x = &mut x[..new_len];
+    let x = &mut x[..new_len];
     let l = x.len() - 9;
     x[l] = (b >> 61) as u8;
     /* FIXME: check cast to u64 */
@@ -1136,7 +1136,7 @@ fn unpackneg(r: &mut [Gf;4], p: &[u8; 32]) -> isize /* int */
         r[0] = tmp;
     }
 
-    let (init, mut rest) = r.split_at_mut(3);
+    let (init, rest) = r.split_at_mut(3);
     gf_mult(&mut rest[0],init[0],init[1]);
     return 0;
 }
