@@ -183,9 +183,20 @@ fn core_hsalsa20(out: &mut [u8;32], inx: &[u8;16], k: &[u8;32], c: &[u8;16])
 
 static SIGMA : &'static [u8;16] = b"expand 32-byte k";
 
-/* XXX: public in tweet-nacl */
-fn stream_salsa20_xor(mut c: &mut [u8], mut m: Option<&[u8]>, n: &[u8;8], k: &[u8;32])
+/// Encrypt `message` into `c_text` using `nonce` and `key` by xoring message with a stream.
+/// 
+/// As a result, can be used to decrypt by passing encrypted text in `message`, and reading
+/// decrypted text from `c_text`.
+///
+/// # Panics
+///
+///  - If `c_text.len() != message.len()`
+pub fn stream_salsa20_xor(c_stream: &mut [u8], message: Option<&[u8]>, nonce: &[u8;8], key: &[u8;32])
 {
+    let mut c = c_stream;
+    let mut m = message;
+    let n = nonce;
+    let k = key;
     let mut z = [0u8;16];
 
     /* XXX: not zeroed in tweet-nacl, provided by call to core_salsa20 */
@@ -231,28 +242,38 @@ fn stream_salsa20_xor(mut c: &mut [u8], mut m: Option<&[u8]>, n: &[u8;8], k: &[u
     }
 }
 
-/* XXX: public in tweet-nacl */
-fn stream_salsa20(c: &mut [u8], n : &[u8;8], k: &[u8;32])
+/// Fill `c_stream` with bytes derived from `nonce` and `key`.
+pub fn stream_salsa20(c_stream: &mut [u8], nonce : &[u8;8], key: &[u8;32])
 {
-    stream_salsa20_xor(c, None, n, k)
+    stream_salsa20_xor(c_stream, None, nonce, key)
 }
 
-pub const STREAM_NONCE_LEN : usize = 24;
-pub const STREAM_KEY_LEN : usize = 32;
-pub type StreamNonce = [u8;STREAM_NONCE_LEN];
-pub type StreamKey = [u8;STREAM_KEY_LEN];
-pub fn stream(c: &mut [u8], n: &StreamNonce, k: &StreamKey)
+pub const STREAM_XSALSA20_NONCE_LEN : usize = 24;
+pub const STREAM_XSALSA20_KEY_LEN : usize = 32;
+pub type StreamXSalsa20Nonce = [u8;STREAM_XSALSA20_NONCE_LEN];
+pub type StreamXSalsa20Key = [u8;STREAM_XSALSA20_KEY_LEN];
+
+/// Fill `c_stream` with bytes derived from `nonce` and `key`.
+pub fn stream_xsalsa20(c_stream: &mut [u8], nonce: &StreamXSalsa20Nonce, key: &StreamXSalsa20Key)
 {
     let mut s = [0u8; 32];
-    core_hsalsa20(&mut s,index_fixed!(&n[..];..16),k,SIGMA);
-    stream_salsa20(c,index_fixed!(&n[16..];..8),&s)
+    core_hsalsa20(&mut s,index_fixed!(&nonce[..];..16),key,SIGMA);
+    stream_salsa20(c_stream,index_fixed!(&nonce[16..];..8),&s)
 }
 
-pub fn stream_xor(c: &mut [u8], m: &[u8], n: &StreamNonce, k: &StreamKey)
+/// Encrypt `message` into `c_text` using `nonce` and `key` by xoring message with a stream.
+/// 
+/// As a result, can be used to decrypt by passing encrypted text in `message`, and reading
+/// decrypted text from `c_text`.
+///
+/// # Panics
+///
+///  - If `c_text.len() != message.len()`
+pub fn stream_xsalsa20_xor(c_text: &mut [u8], message: &[u8], nonce: &StreamXSalsa20Nonce, key: &StreamXSalsa20Key)
 {
     let mut s = [0u8; 32];
-    core_hsalsa20(&mut s,index_fixed!(&n[..];..16),k,SIGMA);
-    stream_salsa20_xor(c,Some(m),index_fixed!(&n[16..];..8), &s)
+    core_hsalsa20(&mut s,index_fixed!(&nonce[..];..16),key,SIGMA);
+    stream_salsa20_xor(c_text,Some(message),index_fixed!(&nonce[16..];..8), &s)
 }
 
 fn add1305(h: &mut [u32; 17], c: &[u32; 17])
@@ -274,6 +295,7 @@ pub const ONETIMEAUTH_KEY_LEN : usize = 32;
 pub const ONETIMEAUTH_HASH_LEN : usize = 16;
 pub type OnetimeauthKey = [u8;ONETIMEAUTH_KEY_LEN];
 pub type OnetimeauthHash = [u8;ONETIMEAUTH_HASH_LEN];
+
 pub fn onetimeauth(out: &mut OnetimeauthHash, mut m: &[u8], k: &OnetimeauthKey)
 {
     /* FIXME: not zeroed in tweet-nacl */
@@ -367,7 +389,7 @@ pub fn secretbox(c: &mut [u8], m: &[u8], n: &SecretboxNonce, k: &SecretboxKey) -
     /* first 32 bytes must be zero */
     assert_eq!(&m[0..32], &[0u8;32]);
 
-    stream_xor(c,m,n,k);
+    stream_xsalsa20_xor(c,m,n,k);
     let mut o = [0u8;16];
     {
         /* XXX: we avoid aliasing to make rust happy at the cost of an extra copy via @o */
@@ -390,11 +412,11 @@ pub fn secretbox_open(m: &mut [u8], c: &[u8], n: &SecretboxNonce, k: &SecretboxK
         return Err(());
     }
     let mut x = [0u8; 32];
-    stream(&mut x,n,k);
+    stream_xsalsa20(&mut x,n,k);
     if onetimeauth_verify(index_fixed!(&c[16..];..16), &c[32..], &x) != 0 {
         return Err(());
     }
-    stream_xor(m,c,n,k);
+    stream_xsalsa20_xor(m,c,n,k);
     for i in 0..32 {
         m[i] = 0;
     }
@@ -1201,3 +1223,87 @@ pub fn sign_attached_open(m: &mut [u8], sm : &[u8], pk: &SignPublicKey) -> Resul
     }
     Ok(n)
 }
+
+/*
+mod auth {
+    mod hmacsha512256 {
+
+    }
+}
+
+mod box_ {
+    mod curve25519xsalsa20poly1305 {
+
+    }
+}
+
+
+mod core_ {
+    mod salsa20 {
+
+    }
+    mod hsalsa20 {
+
+    }
+}
+
+mod hashblocks {
+    mod sha512 {
+
+    }
+    mod sha256 {
+
+    }
+}
+
+mod hash {
+    mod sha512 {
+
+    }
+    mod sha256 {
+
+    }
+}
+
+mod onetimeauth {
+    mod poly1305 {
+
+    }
+}
+
+mod scalarmult {
+    mod curve25519 {
+
+    }
+}
+
+mod secretbox {
+    mod xsalsa20poly1305 {
+
+    }
+}
+
+mod sign {
+    mod ed25519 {
+
+    }
+}
+
+mod stream {
+    mod xsalsa20 {
+
+    }
+    mod salsa20 {
+
+    }
+}
+
+mod verify {
+    mod b16 {
+
+    }
+    mod b32 {
+
+    }
+}
+*/

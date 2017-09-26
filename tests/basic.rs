@@ -80,13 +80,13 @@ fn stream() {
         rng.fill_bytes(&mut k);
 
         let mut out1 = vec![0u8;len];
-        sodalite::stream(&mut out1, &n, &k);
+        sodalite::stream_xsalsa20(&mut out1, &n, &k);
         let mut out2 = vec![0u8;len];
         tweetnacl::crypto_stream(&mut out2, &n, &k);
         assert_eq!(&out1[..], &out2[..]);
 
         let mut out1 = vec![0u8;len];
-        sodalite::stream_xor(&mut out1, &m, &n, &k);
+        sodalite::stream_xsalsa20_xor(&mut out1, &m, &n, &k);
         let mut out2 = vec![0u8;len];
         tweetnacl::crypto_stream_xor(&mut out2, &m, &n, &k);
         assert_eq!(&out1[..], &out2[..]);
