@@ -8,7 +8,7 @@ homepage = "https://github.com/jmesmon/sodalite"
 repository = "https://github.com/jmesmon/sodalite.git"
 documentation = "https://docs.rs/sodalite/0.2.6/sodalite/"
 readme = "README.md"
-include = ["Cargo.toml", "src/*.rs", "README.md", "tests/*.rs" ]
+include = ["Cargo.toml", "src/**/*.rs", "README.md", "tests/**/*.rs" ]
 
 keywords = [ "sodium", "cryptography", "nacl", "no_std"]
 categories = [ "cryptography" ]
