@@ -22,7 +22,7 @@ docs = ["rand"]
 
 [dependencies]
 rand = { version = "0.*", optional = true }
-index-fixed = "0.0.*"
+index-fixed = "0.3"
 
 [dev-dependencies]
 tweetnacl = { path = "tweetnacl", version = "0.*" }
