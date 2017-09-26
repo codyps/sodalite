@@ -1,5 +1,7 @@
-extern crate gcc;
+extern crate cc;
 
 fn main() {
-    gcc::compile_library("libtweetnacl.a", &["src/tweetnacl.c"]);
+    cc::Build::new()
+        .file("src/tweetnacl.c")
+        .compile("libtweetnacl.a");
 }

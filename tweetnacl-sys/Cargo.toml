@@ -17,7 +17,7 @@ travis-ci = { repository = "jmesmon/sodalite" }
 appveyor = { repository = "jmesmon/sodalite" }
 
 [dependencies]
-libc = "0.*"
+libc = "0.2"
 
 [build-dependencies]
-gcc = "0.*"
+cc = "1.0"
