@@ -296,6 +296,7 @@ pub const ONETIMEAUTH_HASH_LEN : usize = 16;
 pub type OnetimeauthKey = [u8;ONETIMEAUTH_KEY_LEN];
 pub type OnetimeauthHash = [u8;ONETIMEAUTH_HASH_LEN];
 
+/// Authenticate a message `m` using a secret key `k`, return the authenticator in `out`.
 pub fn onetimeauth(out: &mut OnetimeauthHash, mut m: &[u8], k: &OnetimeauthKey)
 {
     /* FIXME: not zeroed in tweet-nacl */
@@ -372,11 +373,16 @@ pub fn onetimeauth(out: &mut OnetimeauthHash, mut m: &[u8], k: &OnetimeauthKey)
     }
 }
 
-pub fn onetimeauth_verify(h: &OnetimeauthHash, m: &[u8], k: &OnetimeauthKey) -> isize /* int */
+/// Check that `h` is a correct authenticator for message `m` under secret key `k`.
+pub fn onetimeauth_verify(h: &OnetimeauthHash, m: &[u8], k: &OnetimeauthKey) -> Result<(),()>
 {
     let mut x = [0u8; 16];
     onetimeauth(&mut x,m,k);
-    verify_16(h,&x)
+    if verify_16(h,&x) != 0 {
+        Err(())
+    } else {
+        Ok(())
+    }
 }
 
 pub const SECRETBOX_KEY_LEN : usize = 32;
@@ -593,8 +599,10 @@ fn pow2523(o: &mut Gf, i: Gf)
     }
 }
 
-/* XXX: public in tweetnacl */
-fn scalarmult(q: &mut [u8;32], n: &[u8;32], p: &[u8;32])
+/// Multiply group element `p` by an integer `n`. Result is stored in `q`.
+///
+/// curve25519
+pub fn scalarmult(q: &mut [u8;32], n: &[u8;32], p: &[u8;32])
 {
     let mut z = *n;
     /* TODO: not init in tweet-nacl */
@@ -670,8 +678,9 @@ fn scalarmult(q: &mut [u8;32], n: &[u8;32], p: &[u8;32])
     pack25519(q, *index_fixed!(&x[16..];..16));
 }
 
-/* XXX: public in tweet-nacl */
-fn scalarmult_base(q: &mut [u8;32], n: &[u8;32])
+/// Compute the scalar product of a standard group element and the integer `n`. Returns the result
+/// in `q`.
+pub fn scalarmult_base(q: &mut [u8;32], n: &[u8;32])
 {
     scalarmult(q, n, &C_9)
 }
@@ -683,10 +692,12 @@ pub type BoxPublicKey = [u8; BOX_PUBLIC_KEY_LEN];
 pub type BoxSecretKey = [u8; BOX_SECRET_KEY_LEN];
 pub type BoxNonce = [u8; BOX_NONCE_LEN];
 
-pub fn box_keypair_seed(pk: &mut BoxPublicKey, sk: &mut BoxSecretKey, seed: &[u8; 32])
+/// Use `seed` to populate the `pub_key` and `secret_key`. `seed` should be a uniformly random
+/// generated with a secure random number generator.
+pub fn box_keypair_seed(pub_key: &mut BoxPublicKey, secret_key: &mut BoxSecretKey, seed: &[u8; 32])
 {
-    *sk = *seed;
-    scalarmult_base(pk,sk)
+    *secret_key = *seed;
+    scalarmult_base(pub_key,secret_key)
 }
 
 /* XXX: public in tweet-nacl */
@@ -710,6 +721,15 @@ fn box_open_afternm(m: &mut[u8], c: &[u8], n: &[u8;24], k: &[u8;32]) -> Result<(
     secretbox_open(m,c,n,k)
 }
 
+/// Public key authenticated encryption
+///
+/// Encrypt and authenticate a message `m` using the senders secret key `sk`, the recievers public
+/// key `pk`, and a nonce `n`. Ciphertext is stored in `c`.
+///
+/// # Panics
+///
+///  - If the first 32 bytes of `m` are not zero
+///  - XXX: size of `c` vs `m`?
 pub fn box_(c: &mut [u8], m: &[u8], n: &BoxNonce, pk: &BoxPublicKey, sk: &BoxSecretKey) -> Result<(),()>
 {
     assert_eq!(&m[..32], &[0u8;32]);
@@ -719,6 +739,13 @@ pub fn box_(c: &mut [u8], m: &[u8], n: &BoxNonce, pk: &BoxPublicKey, sk: &BoxSec
     box_afternm(c,m,n, &k)
 }
 
+/// Decrypt and verify the cipher text `c` using the recievers secret key `sk`, the senders public
+/// key `pk`, and the nonce `n`.
+///
+/// # Panics
+/// 
+///  - If the first 16 bytes of `c` a not zero.
+///  - XXX: size of `c` vs `m`?
 pub fn box_open(m : &mut [u8], c: &[u8], n: &BoxNonce, pk: &BoxPublicKey, sk: &BoxSecretKey) -> Result<(),()>
 {
     assert_eq!(&c[..16], &[0u8;16]);
@@ -824,6 +851,10 @@ const IV:[u8; 64] = [
 /* sha512 */
 pub const HASH_LEN : usize = 64;
 pub type Hash = [u8;HASH_LEN];
+
+/// Hash the message `m`, returning the result in `out`.
+/// 
+/// sha512
 pub fn hash(out: &mut Hash, mut m: &[u8])
 {
     let mut h = IV;
