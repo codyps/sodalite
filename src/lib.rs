@@ -1,6 +1,7 @@
 #![no_std]
 
 use core::cmp;
+use core::ops;
 use core::num::Wrapping as W;
 
 #[macro_use]
@@ -37,19 +38,81 @@ mod rand {
 #[cfg(features = "rand")]
 pub use rand::*;
 
-type Gf = [i64;16];
-const GF0 : Gf = [0; 16];
-const GF1 : Gf = [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+//type Gf = [i64;16];
+#[derive(Clone,Eq,PartialEq,Ord,PartialOrd,Debug)]
+struct Gf {
+    v: [i64;16]
+}
+
+impl Gf {
+    fn zero() -> Self {
+        Gf { v: [0; 16] }
+    }
+
+    fn one() -> Self {
+        Gf { v: [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] }
+    }
+}
+
+impl<'a> ops::Add for &'a Gf {
+    type Output = Gf;
+    fn add(self, other: &'a Gf) -> Self::Output {
+        let mut o = Gf::zero();
+        for i in 0..16 {
+            o.v[i] = self.v[i] + other.v[i];
+        }
+        o
+    }
+}
+
+impl<'a> ops::Sub for &'a Gf {
+    type Output = Gf;
+    fn sub(self, other: &'a Gf) -> Self::Output {
+        let mut o = Gf::zero();
+        for i in 0..16 {
+            o.v[i] = self.v[i] - other.v[i];
+        }
+        o
+    }
+}
+
+impl<'a> ops::Mul for &'a Gf {
+    type Output = Gf;
+    fn mul(self, other: &'a Gf) -> Self::Output {
+        let mut o = Gf::zero();
+        let mut t = [0i64;31];
+        for i in 0..16 {
+            for j in 0..16 {
+                t[i+j]+=self.v[i]*other.v[j];
+            }
+        }
+        for i in 0..15 {
+            t[i]+=38*t[i+16];
+        }
+        for i in 0..16 {
+            o[i]=t[i];
+        }
+        car25519(o);
+        car25519(o);
+        o
+    }
+}
+
+/* "square" */
+fn gf_square(o: &mut Gf, a: Gf)
+{
+    o = a * a;
+}
 
 const C_0 : [u8;16] = [0;16];
 const C_9 : [u8;32] = [9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
 
-const C_121665 : Gf = [0xDB41,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
-const D: Gf = [0x78a3, 0x1359, 0x4dca, 0x75eb, 0xd8ab, 0x4141, 0x0a4d, 0x0070, 0xe898, 0x7779, 0x4079, 0x8cc7, 0xfe73, 0x2b6f, 0x6cee, 0x5203];
-const D2:Gf = [0xf159, 0x26b2, 0x9b94, 0xebd6, 0xb156, 0x8283, 0x149a, 0x00e0, 0xd130, 0xeef3, 0x80f2, 0x198e, 0xfce7, 0x56df, 0xd9dc, 0x2406];
-const X: Gf = [0xd51a, 0x8f25, 0x2d60, 0xc956, 0xa7b2, 0x9525, 0xc760, 0x692c, 0xdc5c, 0xfdd6, 0xe231, 0xc0a4, 0x53fe, 0xcd6e, 0x36d3, 0x2169];
-const Y: Gf = [0x6658, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666];
-const I: Gf = [0xa0b0, 0x4a0e, 0x1b27, 0xc4ee, 0xe478, 0xad2f, 0x1806, 0x2f43, 0xd7a7, 0x3dfb, 0x0099, 0x2b4d, 0xdf0b, 0x4fc1, 0x2480, 0x2b83];
+const C_121665 : Gf = Gf { v:[0xDB41,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0] };
+const D: Gf = Gf { v: [0x78a3, 0x1359, 0x4dca, 0x75eb, 0xd8ab, 0x4141, 0x0a4d, 0x0070, 0xe898, 0x7779, 0x4079, 0x8cc7, 0xfe73, 0x2b6f, 0x6cee, 0x5203] };
+const D2:Gf = Gf { v: [0xf159, 0x26b2, 0x9b94, 0xebd6, 0xb156, 0x8283, 0x149a, 0x00e0, 0xd130, 0xeef3, 0x80f2, 0x198e, 0xfce7, 0x56df, 0xd9dc, 0x2406] };
+const X: Gf = Gf { v: [0xd51a, 0x8f25, 0x2d60, 0xc956, 0xa7b2, 0x9525, 0xc760, 0x692c, 0xdc5c, 0xfdd6, 0xe231, 0xc0a4, 0x53fe, 0xcd6e, 0x36d3, 0x2169] };
+const Y: Gf = Gf { v: [0x6658, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666] };
+const I: Gf = Gf { v: [0xa0b0, 0x4a0e, 0x1b27, 0xc4ee, 0xe478, 0xad2f, 0x1806, 0x2f43, 0xd7a7, 0x3dfb, 0x0099, 0x2b4d, 0xdf0b, 0x4fc1, 0x2480, 0x2b83] };
 
 fn l32(x: W<u32>, c: usize /* int */) -> W<u32>
 {
@@ -454,7 +517,7 @@ fn sel25519(p: &mut Gf,q: &mut Gf, b: isize /* int */)
 fn pack25519(o: &mut [u8;32], n: Gf)
 {
     /* XXX: uninit in tweet-nacl */
-    let mut m : Gf = GF0;
+    let mut m = Gf::zero();
 
     let mut t : Gf = n;
     for i in 0..16 {
@@ -510,59 +573,18 @@ fn unpack25519(o: &mut Gf, n: &[u8])
     o[15]&=0x7fff;
 }
 
-/* "add" */
-fn gf_add(o: &mut Gf, a: Gf, b: Gf)
-{
-    for i in 0..16 {
-        o[i]=a[i]+b[i];
-    }
-}
-
-/* "subtract" */
-fn gf_sub(o: &mut Gf, a: Gf, b: Gf)
-{
-    for i in 0..16 {
-        o[i]=a[i]-b[i];
-    }
-}
-
-/* "multiply" */
-fn gf_mult(o: &mut Gf, a: Gf, b: Gf)
-{
-    let mut t = [0i64;31];
-    for i in 0..16 {
-        for j in 0..16 {
-            t[i+j]+=a[i]*b[j];
-        }
-    }
-    for i in 0..15 {
-        t[i]+=38*t[i+16];
-    }
-    for i in 0..16 {
-        o[i]=t[i];
-    }
-    car25519(o);
-    car25519(o);
-}
-
-/* "square" */
-fn gf_square(o: &mut Gf, a: Gf)
-{
-    gf_mult(o,a,a);
-}
-
 fn inv25519(o: &mut Gf, i: Gf)
 {
-    let mut c = GF0;
+    let mut c = Gf::zero();
     for a in 0..16 {
         c[a]=i[a];
     }
     for a in (0..254).rev() {
         /* XXX: avoid aliasing with a copy */
-        let mut tmp = GF0;
+        let mut tmp = Gf::zero();
         gf_square(&mut tmp,c);
         if a!=2 && a!=4 {
-            gf_mult(&mut c,tmp,i);
+            c = tmp * i;
         } else {
             c = tmp;
         }
@@ -574,16 +596,16 @@ fn inv25519(o: &mut Gf, i: Gf)
 
 fn pow2523(o: &mut Gf, i: Gf)
 {
-    let mut c = GF0;
+    let mut c = Gf::zero();
     for a in 0..16 {
         c[a]=i[a];
     }
     for a in (0..251).rev() {
         /* XXX: avoid aliasing with a copy */
-        let mut tmp = GF0;
+        let mut tmp = Gf::zero();
         gf_square(&mut tmp,c);
         if a != 1 {
-            gf_mult(&mut c,tmp,i);
+            c = tmp * i;
         } else {
             c = tmp;
         }
@@ -600,7 +622,7 @@ fn scalarmult(q: &mut [u8;32], n: &[u8;32], p: &[u8;32])
     /* TODO: not init in tweet-nacl */
     let mut x = [0i64;80];
 
-    let mut a = GF0;
+    let mut a = Gf::zero();
     let mut c = a;
     let mut d = a;
     /* TODO: not init in tweet-nacl { */
@@ -612,7 +634,7 @@ fn scalarmult(q: &mut [u8;32], n: &[u8;32], p: &[u8;32])
     z[0]&=248;
     unpack25519(index_fixed!(&mut x;..16),p);
     /* TODO: not init in tweet-nacl */
-    let mut b = GF0;
+    let mut b = Gf::zero();
     for i in 0..16 {
         b[i] = x[i];
     }
@@ -625,30 +647,23 @@ fn scalarmult(q: &mut [u8;32], n: &[u8;32], p: &[u8;32])
         sel25519(&mut c, &mut d, r as isize);
 
         /* XXX: avoid aliasing with an extra copy */
-        let mut tmp = GF0;
-        gf_add(&mut e,a,c);
-        gf_sub(&mut tmp,a,c);
-        a = tmp;
-        gf_add(&mut c,b,d);
-        gf_sub(&mut tmp,b,d);
-        b = tmp;
+        e = a + c;
+        a = a - c;
+        c = b + d;
+        b = b - d;
         gf_square(&mut d,e);
         gf_square(&mut f,a);
-        gf_mult(&mut tmp,c,a);
-        a = tmp;
-        gf_mult(&mut c,b,e);
-        gf_add(&mut e,a,c);
-        gf_sub(&mut tmp,a,c);
-        a = tmp;
+        a = c * a;
+        c = b * e;
+        e = a + c;
+        a = a - c;
         gf_square(&mut b,a);
-        gf_sub(&mut c,d,f);
-        gf_mult(&mut a,c,C_121665);
-        gf_add(&mut tmp,a,d);
-        a = tmp;
-        gf_mult(&mut tmp,c,a);
-        c = tmp;
-        gf_mult(&mut a,d,f);
-        gf_mult(&mut d,b, *index_fixed!(&x;..16));
+        c = d - f;
+        a = c * C_121665;
+        a = a + d;
+        c = c * a;
+        a = d * f;
+        d = b * *index_fixed!(&x;..16);
         gf_square(&mut b,e);
         sel25519(&mut a, &mut b, r as isize);
         sel25519(&mut c, &mut d, r as isize);
@@ -860,7 +875,7 @@ pub fn hash(out: &mut Hash, mut m: &[u8])
 
 fn add(p: &mut [Gf;4],q: &[Gf;4])
 {
-    let mut a = GF0;
+    let mut a = Gf::zero();
     let mut b = a;
     let mut c = a;
     let mut d = a;
@@ -871,7 +886,7 @@ fn add(p: &mut [Gf;4],q: &[Gf;4])
     let mut h = a;
 
     /* XXX: avoid aliasing with extra copy */
-    let mut tmp = GF0;
+    let mut tmp = Gf::zero();
     gf_sub(&mut a, p[1], p[0]);
     gf_sub(&mut t, q[1], q[0]);
     gf_mult(&mut tmp, a, t);
@@ -907,9 +922,9 @@ fn cswap(p: &mut [Gf;4], q: &mut [Gf;4], b: u8)
 
 fn pack(r: &mut [u8;32], p: &[Gf;4])
 {
-    let mut tx = GF0;
-    let mut ty = GF0;
-    let mut zi = GF0;
+    let mut tx = Gf::zero();
+    let mut ty = Gf::zero();
+    let mut zi = Gf::zero();
 
     inv25519(&mut zi, p[2]);
     gf_mult(&mut tx, p[0], zi);
@@ -920,10 +935,10 @@ fn pack(r: &mut [u8;32], p: &[Gf;4])
 
 fn inner_scalarmult(p: &mut [Gf;4], q: &mut [Gf;4], s: &[u8;32])
 {
-    set25519(&mut p[0],GF0);
-    set25519(&mut p[1],GF1);
-    set25519(&mut p[2],GF1);
-    set25519(&mut p[3],GF0);
+    set25519(&mut p[0],Gf::zero());
+    set25519(&mut p[1],Gf::one());
+    set25519(&mut p[2],Gf::one());
+    set25519(&mut p[3],Gf::zero());
     for i in (0..256).rev() {
         let b : u8 = (s[i/8]>>(i&7))&1;
         /* XXX: avoid aliasing with extra copy */
@@ -939,10 +954,10 @@ fn inner_scalarmult(p: &mut [Gf;4], q: &mut [Gf;4], s: &[u8;32])
 fn scalarbase(p: &mut [Gf;4], s: &[u8;32])
 {
     /* XXX: uninit */
-    let mut q = [GF0; 4];
+    let mut q = [Gf::zero(); 4];
     set25519(&mut q[0],X);
     set25519(&mut q[1],Y);
-    set25519(&mut q[2],GF1);
+    set25519(&mut q[2],Gf::once());
     gf_mult(&mut q[3],X,Y);
     inner_scalarmult(p, &mut q,s);
 }
@@ -958,7 +973,7 @@ pub fn sign_keypair_seed(pk: &mut SignPublicKey, sk: &mut SignSecretKey, seed: &
 {
     /* FIXME: uninit in tweet-nacl */
     let mut d = [0u8; 64];
-    let mut p = [GF0;4];
+    let mut p = [Gf::zero();4];
 
     *index_fixed!(&mut sk;..32) = *seed;
     hash(&mut d, &sk[..32]);
@@ -1046,7 +1061,7 @@ pub fn sign_attached(sm: &mut [u8], m: &[u8], sk: &SignSecretKey)
     let mut d = [0u8; 64];
     let mut h = [0u8; 64];
     let mut r = [0u8;64];
-    let mut p = [GF0; 4];
+    let mut p = [Gf::zero(); 4];
     /* } */
 
     hash(&mut d, &sk[..32]);
@@ -1101,7 +1116,7 @@ pub fn sign(sig: &mut Sign, m: &[u8], sk: &SignSecretKey)
 
 fn unpackneg(r: &mut [Gf;4], p: &[u8; 32]) -> isize /* int */
 {
-    let mut t = GF0;
+    let mut t = Gf::zero();
     let mut chk = t;
     let mut num = t;
     let mut den = t;
@@ -1110,9 +1125,9 @@ fn unpackneg(r: &mut [Gf;4], p: &[u8; 32]) -> isize /* int */
     let mut den6 = t;
 
     /* XXX: add extra copy to avoid aliasing */
-    let mut tmp = GF0;
+    let mut tmp = Gf::zero();
 
-    set25519(&mut r[2],GF1);
+    set25519(&mut r[2],Gf::once());
     unpack25519(&mut r[1],p);
     gf_square(&mut num,r[1]);
     gf_mult(&mut den,num,D);
@@ -1154,7 +1169,7 @@ fn unpackneg(r: &mut [Gf;4], p: &[u8; 32]) -> isize /* int */
     }
 
     if par25519(r[0]) == (p[31]>>7) {
-        gf_sub(&mut tmp,GF0,r[0]);
+        gf_sub(&mut tmp,Gf::zero(),r[0]);
         r[0] = tmp;
     }
 
@@ -1182,7 +1197,7 @@ pub fn sign_attached_open(m: &mut [u8], sm : &[u8], pk: &SignPublicKey) -> Resul
     let mut t = [0u8;32];
     let mut h = [0u8;64];
 
-    let mut p = [GF0;4];
+    let mut p = [Gf::zero();4];
     let mut q = p;
 
     if sm.len() < 64 {
