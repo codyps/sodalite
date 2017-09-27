@@ -378,10 +378,9 @@ pub fn onetimeauth_verify(h: &OnetimeauthHash, m: &[u8], k: &OnetimeauthKey) -> 
 {
     let mut x = [0u8; 16];
     onetimeauth(&mut x,m,k);
-    if verify_16(h,&x) != 0 {
-        Err(())
-    } else {
-        Ok(())
+    match verify_16(h,&x) {
+        0 => Ok(()),
+        _ => Err(())
     }
 }
 
@@ -1128,7 +1127,7 @@ pub fn sign(sig: &mut Sign, m: &[u8], sk: &SignSecretKey)
 }
 */
 
-fn unpackneg(r: &mut [Gf;4], p: &[u8; 32]) -> isize /* int */
+fn unpackneg(r: &mut [Gf;4], p: &[u8; 32]) -> Result<(),()>
 {
     let mut t = GF0;
     let mut chk = t;
@@ -1179,7 +1178,7 @@ fn unpackneg(r: &mut [Gf;4], p: &[u8; 32]) -> isize /* int */
     gf_mult(&mut tmp,chk,den);
     chk = tmp;
     if neq25519(chk, num) {
-        return -1;
+        return Err(());
     }
 
     if par25519(r[0]) == (p[31]>>7) {
@@ -1189,7 +1188,8 @@ fn unpackneg(r: &mut [Gf;4], p: &[u8; 32]) -> isize /* int */
 
     let (init, rest) = r.split_at_mut(3);
     gf_mult(&mut rest[0],init[0],init[1]);
-    return 0;
+
+    Ok(())
 }
 
 /**
@@ -1218,10 +1218,7 @@ pub fn sign_attached_open(m: &mut [u8], sm : &[u8], pk: &SignPublicKey) -> Resul
         return Err(())
     }
 
-    /* TODO: check if upackneg should return a bool */
-    if unpackneg(&mut q,pk) != 0 {
-        return Err(());
-    }
+    try!(unpackneg(&mut q,pk));
 
     for i in 0..sm.len() {
         m[i] = sm[i];
