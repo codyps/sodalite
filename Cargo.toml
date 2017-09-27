@@ -19,6 +19,7 @@ appveyor = { repository = "jmesmon/sodalite" }
 
 [features]
 docs = ["rand"]
+bench = ["rand"]
 
 [dependencies]
 rand = { version = "0.*", optional = true }

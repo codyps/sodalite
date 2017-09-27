@@ -1,5 +1,4 @@
 #![no_std]
-
 extern crate tweetnacl_sys as sys;
 
 #[cfg(test)]

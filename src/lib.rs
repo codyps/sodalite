@@ -1,4 +1,11 @@
 #![no_std]
+#![cfg_attr(feature = "bench", feature(test))]
+
+#[cfg(feature = "rand")]
+extern crate rand;
+
+#[cfg(feature = "bench")]
+mod bench;
 
 use core::cmp;
 use core::num::Wrapping as W;
@@ -8,34 +15,33 @@ extern crate index_fixed;
 
 mod test;
 
-#[cfg(features = "rand")]
-mod rand {
-    extern crate rand;
-    use self::rand::Rng;
+#[cfg(feature = "rand")]
+mod rand_ {
+    use ::rand::Rng;
 
     fn randombytes(x: &mut [u8])
     {
-        let mut rng = rand::OsRng::new().unwrap();
+        let mut rng = ::rand::OsRng::new().unwrap();
         rng.fill_bytes(x);
     }
 
-    pub fn box_keypair(pk: &mut BoxPublicKey, sk: &mut BoxSecretKey)
+    pub fn box_keypair(pk: &mut ::BoxPublicKey, sk: &mut ::BoxSecretKey)
     {
         let mut seed = [0u8;32];
         randombytes(&mut seed);
-        box_keypair_seed(pk, sk, &seed);
+        ::box_keypair_seed(pk, sk, &seed);
     }
 
-    pub fn sign_keypair(pk: &mut SignPublicKey, sk: &mut SignSecretKey)
+    pub fn sign_keypair(pk: &mut ::SignPublicKey, sk: &mut ::SignSecretKey)
     {
         let mut seed = [0u8;32];
         randombytes(&mut seed);
-        sign_keypair_seed(pk, sk, &seed);
+        ::sign_keypair_seed(pk, sk, &seed);
     }
 }
 
-#[cfg(features = "rand")]
-pub use rand::*;
+#[cfg(feature = "rand")]
+pub use rand_::*;
 
 type Gf = [i64;16];
 const GF0 : Gf = [0; 16];
