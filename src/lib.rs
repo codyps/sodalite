@@ -697,8 +697,12 @@ pub fn box_keypair_seed(pub_key: &mut BoxPublicKey, secret_key: &mut BoxSecretKe
     scalarmult_base(pub_key,secret_key)
 }
 
-/* XXX: public in tweet-nacl */
-fn box_beforenm(k: &mut[u8;32], pk: &BoxPublicKey, sk: &BoxSecretKey)
+/// By splitting `box_` into 2 steps: `box_beforenm` and `box_afternm`, we can more efficiently
+/// compute multiple messages that use the same keys.
+///
+/// The `k` can be reused for any messages that would use the same public key `pk` and secret key
+/// `sk`.
+pub fn box_beforenm(k: &mut[u8;32], pk: &BoxPublicKey, sk: &BoxSecretKey)
 {
     /* TODO: uninit in tweet-nacl */
     let mut s = [0u8; 32];
@@ -706,14 +710,20 @@ fn box_beforenm(k: &mut[u8;32], pk: &BoxPublicKey, sk: &BoxSecretKey)
     core_hsalsa20(k, &C_0, &s, SIGMA)
 }
 
-/* XXX: public in tweet-nacl */
-fn box_afternm(c: &mut[u8], m: &[u8], n: &[u8;24], k: &[u8;32]) -> Result<(),()>
+/// Encrypt an authenticate a message `m` using a nonce `n` and a precomuted value `k` (from
+/// `box_beforenm`).
+///
+/// The cipher text is stored in `c`.
+pub fn box_afternm(c: &mut[u8], m: &[u8], n: &[u8;24], k: &[u8;32]) -> Result<(),()>
 {
     secretbox(c,m,n,k)
 }
 
-/* XXX: public in tweet-nacl */
-fn box_open_afternm(m: &mut[u8], c: &[u8], n: &[u8;24], k: &[u8;32]) -> Result<(),()>
+/// Verify and decrypt a cipher text `c` using a nonce `n` and a precomuted value `k` (from
+/// `box_beforenm`).
+///
+/// The decrypted message is stored in `m`.
+pub fn box_open_afternm(m: &mut[u8], c: &[u8], n: &[u8;24], k: &[u8;32]) -> Result<(),()>
 {
     secretbox_open(m,c,n,k)
 }
