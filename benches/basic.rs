@@ -118,4 +118,64 @@ fn onetimeauth_1k(b: &mut test::Bencher) {
     });
 }
 
+#[bench]
+fn box_1k(b: &mut test::Bencher) {
+    let mut rng = ::rand::XorShiftRng::new_unseeded();
+    b.iter(|| {
+        let mut s_pk: sodalite::BoxPublicKey = unsafe { ::core::mem::uninitialized() };
+        let mut s_sk: sodalite::BoxSecretKey = unsafe { ::core::mem::uninitialized() };
+        let mut r_pk: sodalite::BoxPublicKey = unsafe { ::core::mem::uninitialized() };
+        let mut r_sk: sodalite::BoxSecretKey = unsafe { ::core::mem::uninitialized() };
+        let mut seed: [u8;32] = unsafe { ::core::mem::uninitialized() };
 
+        rng.fill_bytes(&mut seed[..]);
+        sodalite::box_keypair_seed(&mut r_pk, &mut r_sk, &seed);
+
+        rng.fill_bytes(&mut seed[..]);
+        sodalite::box_keypair_seed(&mut s_pk, &mut s_sk, &seed);
+
+        let mut m: [u8;1024] = unsafe { ::core::mem::uninitialized() };
+        let mut n: [u8;24] = unsafe { ::core::mem::uninitialized() };
+
+        *index_fixed!(&mut m; ..32) = [0u8;32];
+        rng.fill_bytes(&mut m[32..]);
+        rng.fill_bytes(&mut n[..]);
+
+        let mut c = [0;1024];
+
+        sodalite::box_(&mut c, &m, &n, &r_pk, &s_sk).unwrap();
+    });
+}
+
+
+#[bench]
+fn box_1k_rt(b: &mut test::Bencher) {
+    let mut rng = ::rand::XorShiftRng::new_unseeded();
+    b.iter(|| {
+        let mut s_pk: sodalite::BoxPublicKey = unsafe { ::core::mem::uninitialized() };
+        let mut s_sk: sodalite::BoxSecretKey = unsafe { ::core::mem::uninitialized() };
+        let mut r_pk: sodalite::BoxPublicKey = unsafe { ::core::mem::uninitialized() };
+        let mut r_sk: sodalite::BoxSecretKey = unsafe { ::core::mem::uninitialized() };
+        let mut seed: [u8;32] = unsafe { ::core::mem::uninitialized() };
+
+        rng.fill_bytes(&mut seed[..]);
+        sodalite::box_keypair_seed(&mut r_pk, &mut r_sk, &seed);
+
+        rng.fill_bytes(&mut seed[..]);
+        sodalite::box_keypair_seed(&mut s_pk, &mut s_sk, &seed);
+
+        let mut m: [u8;1024] = unsafe { ::core::mem::uninitialized() };
+        let mut n: [u8;24] = unsafe { ::core::mem::uninitialized() };
+
+        *index_fixed!(&mut m; ..32) = [0u8;32];
+        rng.fill_bytes(&mut m[32..]);
+        rng.fill_bytes(&mut n[..]);
+
+        let mut c = [0;1024];
+        let mut mr =[0;1024];
+
+        sodalite::box_(&mut c, &m, &n, &r_pk, &s_sk).unwrap();
+
+        sodalite::box_open(&mut mr, &c, &n, &s_pk, &r_sk).unwrap();
+    });
+}
