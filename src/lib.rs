@@ -1,11 +1,7 @@
 #![no_std]
-#![cfg_attr(feature = "bench", feature(test))]
 
 #[cfg(feature = "rand")]
 extern crate rand;
-
-#[cfg(feature = "bench")]
-mod bench;
 
 use core::cmp;
 use core::num::Wrapping as W;
