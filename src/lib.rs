@@ -419,9 +419,7 @@ pub fn secretbox_open(m: &mut [u8], c: &[u8], n: &SecretboxNonce, k: &SecretboxK
     }
     let mut x = [0u8; 32];
     stream_xsalsa20(&mut x,n,k);
-    if onetimeauth_verify(index_fixed!(&c[16..];..16), &c[32..], &x) != 0 {
-        return Err(());
-    }
+    try!(onetimeauth_verify(index_fixed!(&c[16..];..16), &c[32..], &x));
     stream_xsalsa20_xor(m,c,n,k);
     for i in 0..32 {
         m[i] = 0;

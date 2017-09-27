@@ -49,12 +49,16 @@ pub fn crypto_onetimeauth(out: &mut [u8;16], m: &[u8], k: &[u8;32])
     };
 }
 
-pub fn crypto_onetimeauth_verify(h: &[u8;16], m: &[u8], k: &[u8;32]) -> isize
+pub fn crypto_onetimeauth_verify(h: &[u8;16], m: &[u8], k: &[u8;32]) -> Result<(),()>
 {
     let x = unsafe {
         sys::crypto_onetimeauth_poly1305_tweet_verify(h.as_ptr(), m.as_ptr(), m.len() as sys::c_ulonglong, k.as_ptr())
     };
-    x as isize
+
+    match x {
+        0 => Ok(()),
+        _ => Err(()),
+    }
 }
 
 pub fn crypto_secretbox(out: &mut [u8], m: &[u8], n: &[u8;24], k: &[u8;32]) -> Result<(),()>
