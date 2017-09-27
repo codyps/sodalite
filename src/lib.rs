@@ -992,6 +992,10 @@ pub type SignPublicKey = [u8;SIGN_PUBLIC_KEY_LEN];
 pub type SignSecretKey = [u8;SIGN_SECRET_KEY_LEN];
 pub type Sign = [u8;SIGN_LEN];
 
+/// Generate a signature keypair with a public key `pk` and a secret key `sk` from the provided
+/// seed `seed`.
+///
+/// `seed` should be uniformly random and generated with a secure random number generator.
 pub fn sign_keypair_seed(pk: &mut SignPublicKey, sk: &mut SignSecretKey, seed: &[u8;32])
 {
     /* FIXME: uninit in tweet-nacl */
@@ -1210,9 +1214,9 @@ fn unpackneg(r: &mut [Gf;4], p: &[u8; 32]) -> Result<(),()>
  * If verification failed, returns Err(()).
  * Otherwise, returns the number of bytes in message & copies the message into @m
  *
- * Panics:
+ * # Panics:
  *
- * - If m.len() != sm.len()
+ * - If `m.len() != sm.len()`
  *
  */
 pub fn sign_attached_open(m: &mut [u8], sm : &[u8], pk: &SignPublicKey) -> Result<usize, ()>

@@ -26,7 +26,7 @@ fn hashblock() {
         let v1 = super::hashblocks(&mut hash1, b);
 
         let mut hash2 = [0u8;64];
-        let v2 = tweetnacl::crypto_hashblocks_sha512(&mut hash2, b);
+        let v2 = tweetnacl::hashblocks_sha512(&mut hash2, b);
 
         assert_eq!(&hash1[..], &hash2[..]);
         assert_eq!(v1, v2);
@@ -51,7 +51,7 @@ fn mod_l() {
         let mut x2 = x;
 
         super::mod_l(&mut r, &mut x);
-        tweetnacl::crypto_mod_l(&mut r2, &mut x2);
+        tweetnacl::mod_l(&mut r2, &mut x2);
 
         assert_eq!(&r[..], &r2[..]);
         assert_eq!(&x[..], &x2[..])
@@ -76,7 +76,7 @@ fn core_salsa20() {
         let mut out1 = [0u8;64];
         super::core_salsa20(&mut out1, &inx, &k, &c);
         let mut out2 = [0u8;64];
-        tweetnacl::crypto_core_salsa20(&mut out2, &inx, &k, &c);
+        tweetnacl::core_salsa20(&mut out2, &inx, &k, &c);
         assert_eq!(&out1[..], &out2[..]);
     })
 }
@@ -98,7 +98,7 @@ fn core_hsalsa20() {
         let mut out1 = [0u8;32];
         super::core_hsalsa20(&mut out1, &inx, &k, &c);
         let mut out2 = [0u8;32];
-        tweetnacl::crypto_core_hsalsa20(&mut out2, &inx, &k, &c);
+        tweetnacl::core_hsalsa20(&mut out2, &inx, &k, &c);
         assert_eq!(&out1[..], &out2[..]);
     })
 }
@@ -125,7 +125,7 @@ fn stream_salsa20_xor() {
         let out1 = &mut out1_b[0..b];
         super::stream_salsa20_xor(out1, None, &n, &c);
         let out2 = &mut out2_b[0..b];
-        tweetnacl::crypto_stream_salsa20_xor(out2, None, &n, &c);
+        tweetnacl::stream_salsa20_xor(out2, None, &n, &c);
         assert_eq!(&out1[..], &out2[..]);
     })
 }
@@ -141,7 +141,7 @@ fn scalarmult() {
         let mut q1 = [0u8;32];
         super::scalarmult_base(&mut q1, &p);
         let mut q2 = [0u8;32];
-        tweetnacl::crypto_scalarmult_base(&mut q2, &p);
+        tweetnacl::scalarmult_base(&mut q2, &p);
         assert_eq!(&q1[..], &q2[..]);
     })
 }
