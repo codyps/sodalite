@@ -394,6 +394,11 @@ pub type SecretboxNonce = [u8;SECRETBOX_NONCE_LEN];
 /// Encrypt and authenticate message `m` using nonce `n` and secret key `k`.
 ///
 /// Cipher text is returned in `c`.
+///
+/// # Panics
+/// 
+///  - If first 32 bytes of `m` are not zero.
+///  - If length of `c` is not the same as the length of `m`.
 pub fn secretbox(c: &mut [u8], m: &[u8], n: &SecretboxNonce, k: &SecretboxKey) -> Result<(),()>
 {
     assert_eq!(c.len(), m.len());
@@ -695,7 +700,7 @@ pub type BoxPublicKey = [u8; BOX_PUBLIC_KEY_LEN];
 pub type BoxSecretKey = [u8; BOX_SECRET_KEY_LEN];
 pub type BoxNonce = [u8; BOX_NONCE_LEN];
 
-/// Use `seed` to populate the `pub_key` and `secret_key`. `seed` should be a uniformly random
+/// Use `seed` to populate the `pub_key` and `secret_key`. `seed` should be uniformly random and
 /// generated with a secure random number generator.
 pub fn box_keypair_seed(pub_key: &mut BoxPublicKey, secret_key: &mut BoxSecretKey, seed: &[u8; 32])
 {
