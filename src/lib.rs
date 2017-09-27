@@ -388,6 +388,10 @@ pub const SECRETBOX_KEY_LEN : usize = 32;
 pub const SECRETBOX_NONCE_LEN : usize = 24;
 pub type SecretboxKey = [u8;SECRETBOX_KEY_LEN];
 pub type SecretboxNonce = [u8;SECRETBOX_NONCE_LEN];
+
+/// Encrypt and authenticate message `m` using nonce `n` and secret key `k`.
+///
+/// Cipher text is returned in `c`.
 pub fn secretbox(c: &mut [u8], m: &[u8], n: &SecretboxNonce, k: &SecretboxKey) -> Result<(),()>
 {
     assert_eq!(c.len(), m.len());
@@ -407,9 +411,9 @@ pub fn secretbox(c: &mut [u8], m: &[u8], n: &SecretboxNonce, k: &SecretboxKey) -
     Ok(())
 }
 
-/*
- * c: &[u8:d]
- */
+/// Decrypt and verify cipher text `c` using nonce `n` and secret key `k`.
+///
+/// Message is returned in `m`.
 pub fn secretbox_open(m: &mut [u8], c: &[u8], n: &SecretboxNonce, k: &SecretboxKey) -> Result<(),()>
 {
     assert_eq!(m.len(), c.len());
