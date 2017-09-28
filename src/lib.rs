@@ -1079,18 +1079,13 @@ fn reduce(r: &mut [u8;64])
     mod_l(index_fixed!(&mut r;..32), &mut x);
 }
 
-/**
- * Generate an attached (ie: joined) signature for a message
- *
- * The signature is stored at the beginning of @sm (signed message). @sm must be at exactly
- * @m.len() + SIGN_LEN bytes long.
- *
- * @sm is not read from, it is only used as an output parameter.
- *
- * Panics:
- *
- * - @sm is not the right size.
- */
+/// Sign a message `m` using the signers secret key `sk`
+///
+/// The signed message is returned in `sm`.
+///
+/// # Panics
+///
+///  - If `sm` is not the length of `m` plus `SIGN_LEN` bytes long.
 pub fn sign_attached(sm: &mut [u8], m: &[u8], sk: &SignSecretKey)
 {
     assert_eq!(sm.len(), m.len() + SIGN_LEN);
@@ -1217,19 +1212,15 @@ fn unpackneg(r: &mut [Gf;4], p: &[u8; 32]) -> Result<(),()>
     Ok(())
 }
 
-/**
- * verify an attached signature
- *
- * @m must have the same length as @sm.
- *
- * If verification failed, returns Err(()).
- * Otherwise, returns the number of bytes in message & copies the message into @m
- *
- * # Panics:
- *
- * - If `m.len() != sm.len()`
- *
- */
+/// verify an attached signature
+/// 
+/// If verification failed, returns `Err(())`.
+/// Otherwise, returns the number of bytes in message & copies the message into `m`.
+/// 
+/// # Panics:
+/// 
+/// - If `m.len() != sm.len()`
+/// 
 pub fn sign_attached_open(m: &mut [u8], sm : &[u8], pk: &SignPublicKey) -> Result<usize, ()>
 {
     assert_eq!(m.len(), sm.len());

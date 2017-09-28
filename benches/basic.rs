@@ -179,3 +179,5 @@ fn box_1k_rt(b: &mut test::Bencher) {
         sodalite::box_open(&mut mr, &c, &n, &s_pk, &r_sk).unwrap();
     });
 }
+
+
