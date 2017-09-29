@@ -212,10 +212,10 @@ fn hashblocks_sha512_twice_eq() {
     rng.fill_bytes(b);
 
     let mut hash1 = [0u8;64];
-    let v1 = crypto_hashblocks_sha512(&mut hash1, b);
+    let v1 = hashblocks_sha512(&mut hash1, b);
 
     let mut hash2 = [0u8;64];
-    let v2 = crypto_hashblocks_sha512(&mut hash2, b);
+    let v2 = hashblocks_sha512(&mut hash2, b);
 
     assert_eq!(&hash1[..], &hash2[..]);
     assert_eq!(v1, v2);
