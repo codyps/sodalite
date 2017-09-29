@@ -1,6 +1,6 @@
 [package]
 name = "sodalite"
-version = "0.2.6"
+version = "0.3.0"
 authors = ["Cody P Schafer <dev@codyps.com>"]
 description = "Tweetnacl in pure rust with no std dependency"
 license = "Apache-2.0 OR MIT"
@@ -22,11 +22,11 @@ docs = ["rand"]
 bench = ["rand"]
 
 [dependencies]
-rand = { version = "0.*", optional = true }
+rand = { version = "0.3", optional = true }
 index-fixed = "0.3"
 
 [dev-dependencies]
-tweetnacl = { path = "tweetnacl", version = "0.*" }
-rand = "0.*"
+tweetnacl = { path = "tweetnacl", version = "0.2" }
+rand = "0.3"
 
 [workspace]
