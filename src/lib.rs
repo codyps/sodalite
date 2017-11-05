@@ -1065,7 +1065,7 @@ fn mod_l(r: &mut [u8;32], x: &mut [i64;64])
     }
 }
 
-fn reduce(r: &mut [u8;64])
+pub fn reduce(r: &mut [u8;64])
 {
     /* TODO: uninitialized in tweet-nacl */
     let mut x = [0i64;64];
