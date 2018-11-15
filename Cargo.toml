@@ -22,11 +22,11 @@ docs = ["rand"]
 bench = ["rand"]
 
 [dependencies]
-rand = { version = "0.3", optional = true }
+rand = { version = "0.6", optional = true }
 index-fixed = "0.3"
 
 [dev-dependencies]
 tweetnacl = { path = "tweetnacl", version = "0.2" }
-rand = "0.3"
+rand = "0.6"
 
 [workspace]
