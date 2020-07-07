@@ -23,7 +23,7 @@ bench = ["rand"]
 
 [dependencies]
 rand = { version = "0.7.3", optional = true }
-index-fixed = "0.7.3"
+index-fixed = "0.3"
 
 [dev-dependencies]
 tweetnacl = { path = "tweetnacl", version = "0.2" }
