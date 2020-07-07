@@ -5,6 +5,7 @@ extern crate rand;
 extern crate tweetnacl;
 
 use self::rand::Rng;
+use self::rand::RngCore;
 
 fn prob_test<T: FnMut()>(ct: u64, mut t: T) {
     for _ in 0..ct {
