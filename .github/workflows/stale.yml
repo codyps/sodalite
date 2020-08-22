@@ -1,19 +1,19 @@
-name: Mark stale issues and pull requests
+name: Mark & Close stale issues and pull requests
 
 on:
   schedule:
-  - cron: "0 * * * *"
+  - cron: "0 0 * * *"
 
 jobs:
   stale:
-
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/stale@v1
+    - uses: actions/stale@v1.1.0
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
-        stale-issue-message: 'Stale issue message'
-        stale-pr-message: 'Stale pull request message'
-        days-before-stale: 1
-        days-before-close: 1
+        stale-issue-message: 'This issue has been open for 14 days with no activity. If it should stay open, remove the S-stale tag or it will automatically be closed'
+        stale-pr-message: 'This PR has been open for 14 days with no activity. If it should stay open, remove the S-stale tag or it will automatically be closed'
+        stale-issue-label: 'S-stale'
+        stale-pr-label: 'S-stale'
+        days-before-stale: 14
+        days-before-close: 14
