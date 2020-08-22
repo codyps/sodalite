@@ -2,9 +2,9 @@
  * TODO: add test vectors
  */
 
-extern crate tweetnacl;
-extern crate sodalite;
 extern crate rand;
+extern crate sodalite;
+extern crate tweetnacl;
 
 use self::rand::Rng;
 
@@ -24,12 +24,12 @@ fn hash() {
 
         println!("length: {}", len);
 
-        let mut b = vec![0u8;len];
+        let mut b = vec![0u8; len];
         rng.fill_bytes(&mut b);
 
-        let mut hash1 = [0u8;64];
+        let mut hash1 = [0u8; 64];
         sodalite::hash(&mut hash1, &b);
-        let mut hash2 = [0u8;64];
+        let mut hash2 = [0u8; 64];
         tweetnacl::hash_sha512(&mut hash2, &b);
 
         assert_eq!(&hash1[..], &hash2[..]);
@@ -44,15 +44,15 @@ fn onetimeauth() {
         let len = rng.gen_range(std::usize::MIN, 1024);
         println!("length: {}", len);
 
-        let mut m = vec![0u8;len];
+        let mut m = vec![0u8; len];
         rng.fill_bytes(&mut m);
 
-        let mut k = [0u8;32];
+        let mut k = [0u8; 32];
         rng.fill_bytes(&mut k);
 
-        let mut out1 = [0u8;16];
+        let mut out1 = [0u8; 16];
         sodalite::onetimeauth(&mut out1, &m, &k);
-        let mut out2 = [0u8;16];
+        let mut out2 = [0u8; 16];
         tweetnacl::onetimeauth(&mut out2, &m, &k);
         assert_eq!(&out1[..], &out2[..]);
 
@@ -70,24 +70,24 @@ fn stream() {
         let len = rng.gen_range(0, 1024);
         println!("length: {}", len);
 
-        let mut m = vec![0u8;len];
+        let mut m = vec![0u8; len];
         rng.fill_bytes(&mut m);
 
-        let mut n = [0u8;24];
+        let mut n = [0u8; 24];
         rng.fill_bytes(&mut n);
 
-        let mut k = [0u8;32];
+        let mut k = [0u8; 32];
         rng.fill_bytes(&mut k);
 
-        let mut out1 = vec![0u8;len];
+        let mut out1 = vec![0u8; len];
         sodalite::stream_xsalsa20(&mut out1, &n, &k);
-        let mut out2 = vec![0u8;len];
+        let mut out2 = vec![0u8; len];
         tweetnacl::stream(&mut out2, &n, &k);
         assert_eq!(&out1[..], &out2[..]);
 
-        let mut out1 = vec![0u8;len];
+        let mut out1 = vec![0u8; len];
         sodalite::stream_xsalsa20_xor(&mut out1, &m, &n, &k);
-        let mut out2 = vec![0u8;len];
+        let mut out2 = vec![0u8; len];
         tweetnacl::stream_xor(&mut out2, &m, &n, &k);
         assert_eq!(&out1[..], &out2[..]);
     })
@@ -102,32 +102,31 @@ fn box_() {
         let len = rng.gen_range(32, 1024);
         println!("length: {}", len);
 
-        let mut m = vec![0u8;len];
+        let mut m = vec![0u8; len];
         rng.fill_bytes(&mut m[32..]);
 
-        let mut n = [0u8;24];
+        let mut n = [0u8; 24];
         rng.fill_bytes(&mut n);
 
-        let mut pk = [0u8;32];
-        let mut sk = [0u8;32];
+        let mut pk = [0u8; 32];
+        let mut sk = [0u8; 32];
 
-        let mut seed = [0u8;32];
+        let mut seed = [0u8; 32];
         rng.fill_bytes(&mut seed);
         sodalite::box_keypair_seed(&mut pk, &mut sk, &seed);
 
-        let mut out1 = vec![0u8;len];
+        let mut out1 = vec![0u8; len];
         sodalite::box_(&mut out1, &m, &n, &pk, &sk).unwrap();
-        let mut out2 = vec![0u8;len];
+        let mut out2 = vec![0u8; len];
         tweetnacl::box_(&mut out2, &m, &n, &pk, &sk).unwrap();
         assert_eq!(&out1[..], &out2[..]);
 
-        let mut dec1 = vec![0u8;len];
+        let mut dec1 = vec![0u8; len];
         sodalite::box_open(&mut dec1, &out1, &n, &pk, &sk).unwrap();
-        let mut dec2 = vec![0u8;len];
+        let mut dec2 = vec![0u8; len];
         tweetnacl::box_open(&mut dec2, &out2, &n, &pk, &sk).unwrap();
         assert_eq!(dec1, dec2);
         assert_eq!(dec1, m);
-
 
         /* TODO: "corrupt" some data and ensure it doesn't open the box */
     })
@@ -143,28 +142,27 @@ fn secretbox() {
         let len = rng.gen_range(33, 1024);
         println!("length: {}", len);
 
-        let mut m = vec![0u8;len];
+        let mut m = vec![0u8; len];
         rng.fill_bytes(&mut m[32..]);
 
-        let mut n = [0u8;24];
+        let mut n = [0u8; 24];
         rng.fill_bytes(&mut n);
 
-        let mut k = [0u8;32];
+        let mut k = [0u8; 32];
         rng.fill_bytes(&mut k);
 
-        let mut out1 = vec![0u8;len];
+        let mut out1 = vec![0u8; len];
         sodalite::secretbox(&mut out1, &m, &n, &k).unwrap();
-        let mut out2 = vec![0u8;len];
+        let mut out2 = vec![0u8; len];
         tweetnacl::secretbox(&mut out2, &m, &n, &k).unwrap();
         assert_eq!(&out1[..], &out2[..]);
 
-        let mut dec1 = vec![0u8;len];
+        let mut dec1 = vec![0u8; len];
         sodalite::secretbox_open(&mut dec1, &out1, &n, &k).unwrap();
-        let mut dec2 = vec![0u8;len];
+        let mut dec2 = vec![0u8; len];
         tweetnacl::secretbox_open(&mut dec2, &out2, &n, &k).unwrap();
         assert_eq!(dec1, dec2);
         assert_eq!(dec1, m);
-
 
         /* TODO: "corrupt" some data and ensure it doesn't open the box */
     })
@@ -179,15 +177,15 @@ fn sign() {
         let len = rng.gen_range(0, 1024);
         println!("length: {}", len);
 
-        let mut m = vec![0u8;len];
+        let mut m = vec![0u8; len];
         rng.fill_bytes(&mut m);
 
-        let mut pk = [0u8;sodalite::SIGN_PUBLIC_KEY_LEN];
-        let mut sk = [0u8;sodalite::SIGN_SECRET_KEY_LEN];
-        let mut pk2 = [0u8;sodalite::SIGN_PUBLIC_KEY_LEN];
-        let mut sk2 = [0u8;sodalite::SIGN_SECRET_KEY_LEN];
+        let mut pk = [0u8; sodalite::SIGN_PUBLIC_KEY_LEN];
+        let mut sk = [0u8; sodalite::SIGN_SECRET_KEY_LEN];
+        let mut pk2 = [0u8; sodalite::SIGN_PUBLIC_KEY_LEN];
+        let mut sk2 = [0u8; sodalite::SIGN_SECRET_KEY_LEN];
 
-        let mut seed = [0u8;sodalite::SIGN_PUBLIC_KEY_LEN];
+        let mut seed = [0u8; sodalite::SIGN_PUBLIC_KEY_LEN];
         rng.fill_bytes(&mut seed);
 
         sodalite::sign_keypair_seed(&mut pk, &mut sk, &seed);
@@ -197,16 +195,16 @@ fn sign() {
         assert_eq!(&sk[..], &sk2[..]);
 
         let n = len + sodalite::SIGN_LEN;
-        let mut out1 = vec![0u8;n];
+        let mut out1 = vec![0u8; n];
         sodalite::sign_attached(&mut out1, &m, &sk);
-        let mut out2 = vec![0u8;n];
+        let mut out2 = vec![0u8; n];
         tweetnacl::sign(&mut out2, &m, &sk);
         assert_eq!(out1, out2);
 
-        let mut dec1 = vec![0u8;n];
+        let mut dec1 = vec![0u8; n];
         let v = sodalite::sign_attached_open(&mut dec1, &out1, &pk).unwrap();
         dec1.truncate(v);
-        let mut dec2 = vec![0u8;n];
+        let mut dec2 = vec![0u8; n];
         let v = tweetnacl::sign_open(&mut dec2, &out2, &pk).unwrap();
         dec2.truncate(v);
         assert_eq!(dec1, dec2);
