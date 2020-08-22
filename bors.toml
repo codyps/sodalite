@@ -1,1 +1,6 @@
-status = ["build"]
+status = [
+	"ci (stable)",
+	"ci (beta)",
+	"ci (nightly)",
+	"ci (1.38.0)"
+]
