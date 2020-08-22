@@ -1,107 +1,14 @@
 # ex: ts=2 sw=2 sts=2 et
 sudo: false
-dist: trusty
+dist: focal
 
-language: generic
+language: rust
 
 apt:
   packages:
     - libsodium
 
-env:
-  global:
-    - DIRS=". tweetnacl tweetnacl-sys"
-
-matrix:
-  include:
-    # armhf linux
-    - os: linux
-      env: TARGET_ARCH=arm TARGET_VENDOR=-unknown TARGET_OS=linux-gnueabihf TRAVIS_RUST_VERSION=stable
-      addons:
-        apt:
-          packages: &armhf
-            # Cross compiler and cross compiled C libraries
-            - gcc-arm-linux-gnueabihf
-            - libc6-armhf-cross
-            - libc6-dev-armhf-cross
-            # Emulator
-            - qemu-user
-    - os: linux
-      env: TARGET_ARCH=arm TARGET_VENDOR=-unknown TARGET_OS=linux-gnueabihf TRAVIS_RUST_VERSION=beta
-      addons:
-        apt:
-          packages: *armhf
-    - os: linux
-      env: TARGET_ARCH=arm TARGET_VENDOR=-unknown TARGET_OS=linux-gnueabihf TRAVIS_RUST_VERSION=nightly
-      addons:
-        apt:
-          packages: *armhf
-    # i686 linux
-    - os: linux
-      env: TARGET_ARCH=i686 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu TRAVIS_RUST_VERSION=stable
-      addons:
-        apt:
-          packages: &i686-linux
-            # Cross compiler and cross compiled C libraries
-            - gcc-multilib
-    - os: linux
-      env: TARGET_ARCH=i686 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu TRAVIS_RUST_VERSION=nightly
-      addons:
-        apt:
-          packages: *i686-linux
-    - os: linux
-      env: TARGET_ARCH=i686 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu TRAVIS_RUST_VERSION=beta
-      addons:
-        apt:
-          packages: *i686-linux
-    # musl
-    - os: linux
-      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-musl TRAVIS_RUST_VERSION=stable
-      addons:
-        apt:
-          packages: &musl
-            - musl-tools
-    - os: linux
-      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-musl TRAVIS_RUST_VERSION=beta
-      addons:
-        apt:
-          packages: *musl
-    - os: linux
-      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-musl TRAVIS_RUST_VERSION=nightly
-      addons:
-        apt:
-          packages: *musl
-    # x86-64 linux
-    - os: linux
-      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu TRAVIS_RUST_VERSION=stable DO_DOC=true
-    - os: linux
-      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu TRAVIS_RUST_VERSION=beta DO_DOC=true
-    - os: linux
-      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-unknown TARGET_OS=linux-gnu TRAVIS_RUST_VERSION=nightly DO_DOC=true
-    # osX
-    - os: osx
-      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-apple TARGET_OS=darwin TRAVIS_RUST_VERSION=nightly
-    - os: osx
-      env: TARGET_ARCH=i686 TARGET_VENDOR=-apple TARGET_OS=darwin TRAVIS_RUST_VERSION=nightly
-    - os: osx
-      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-apple TARGET_OS=darwin TRAVIS_RUST_VERSION=stable
-    - os: osx
-      env: TARGET_ARCH=i686 TARGET_VENDOR=-apple TARGET_OS=darwin TRAVIS_RUST_VERSION=stable
-    - os: osx
-      env: TARGET_ARCH=x86_64 TARGET_VENDOR=-apple TARGET_OS=darwin TRAVIS_RUST_VERSION=beta
-    - os: osx
-      env: TARGET_ARCH=i686 TARGET_VENDOR=-apple TARGET_OS=darwin TRAVIS_RUST_VERSION=beta
-
-install:
-  - export PATH="$PATH:~/.cargo/bin"
-  - ci/install.sh
-
 script:
-  - ci/script.sh
-
-after_success:
-  - ci/travis-doc-upload.sh
-
-notifications:
-  email:
-    on_success: never
+  - cargo build --all --verbose
+  - cargo test --all --verbose
+  - cargo bench --all --verbose
