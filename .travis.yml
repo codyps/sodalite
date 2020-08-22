@@ -11,4 +11,3 @@ apt:
 script:
   - cargo build --all --verbose
   - cargo test --all --verbose
-  - cargo bench --all --verbose
