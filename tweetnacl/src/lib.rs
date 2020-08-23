@@ -255,7 +255,7 @@ pub fn mod_l(r: &mut [u8; 32], x: &mut [i64; 64]) {
 
 #[test]
 fn hashblocks_sha512_twice_eq() {
-    use rand::Rng;
+    use rand::{Rng, RngCore};
     let mut rng = rand::thread_rng();
 
     // 1 KiB, arbitrary

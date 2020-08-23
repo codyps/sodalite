@@ -6,9 +6,9 @@ description = "Tweetnacl in pure rust with no std dependency"
 license = "Apache-2.0 OR MIT"
 homepage = "https://github.com/jmesmon/sodalite"
 repository = "https://github.com/jmesmon/sodalite.git"
-documentation = "https://docs.rs/sodalite/0.2.6/sodalite/"
+documentation = "https://docs.rs/crate/sodalite/"
 readme = "README.md"
-include = ["Cargo.toml", "src/**/*.rs", "README.md", "tests/**/*.rs" ]
+include = ["Cargo.toml", "src/**/*.rs", "README.md"]
 
 keywords = [ "sodium", "cryptography", "nacl", "no_std"]
 categories = [ "cryptography" ]
@@ -22,11 +22,11 @@ docs = ["rand"]
 bench = ["rand"]
 
 [dependencies]
-rand = { version = "0.3", optional = true }
+rand = { version = "0.7", optional = true }
 index-fixed = "0.3"
 
 [dev-dependencies]
 tweetnacl = { path = "tweetnacl", version = "0.2" }
-rand = "0.3"
+rand = "0.7"
 
 [workspace]
