@@ -4,6 +4,13 @@ dist: focal
 
 language: rust
 
+rust:
+  - beta
+
+cache:
+  ccache: true
+  cargo: true
+
 apt:
   packages:
     - libsodium
@@ -11,4 +18,9 @@ apt:
 script:
   - cargo build --all --verbose
   - cargo test --all --verbose
-  - cargo bench --all --verbose
+
+branches:
+  only:
+    - staging
+    - trying
+    - master

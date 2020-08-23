@@ -4,3 +4,5 @@ status = [
 	"ci (nightly)",
 	"ci (1.38.0)"
 ]
+delete_merged_branches = true
+cut_body_after = "---"

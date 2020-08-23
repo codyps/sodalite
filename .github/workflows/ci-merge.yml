@@ -1,6 +1,9 @@
-on: push
-
-name: Continuous integration
+name: Continuous integration Full
+on:
+  push:
+    branches:
+      - trying
+      - staging
 
 jobs:
   ci:
@@ -9,7 +12,7 @@ jobs:
       matrix:
         rust:
           - stable
-          - beta
+          # beta is run as part of `ci.yml`
           - nightly
           - 1.38.0  # MSRV
 
@@ -26,10 +29,12 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: build
+          args: --all --verbose
 
       - uses: actions-rs/cargo@v1
         with:
           command: test
+          args: --all --verbose
 
       - uses: actions-rs/cargo@v1
         with:
