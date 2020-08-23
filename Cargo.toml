@@ -9,6 +9,7 @@ repository = "https://github.com/jmesmon/sodalite.git"
 documentation = "https://docs.rs/crate/sodalite/"
 readme = "README.md"
 include = ["Cargo.toml", "src/**/*.rs", "README.md"]
+edition = "2018"
 
 keywords = [ "sodium", "cryptography", "nacl", "no_std"]
 categories = [ "cryptography" ]
