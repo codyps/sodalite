@@ -15,7 +15,7 @@ mod test;
 mod rand_ {
     fn randombytes(x: &mut [u8]) {
         let mut rng = ::rand::rngs::OsRng;
-        use ::rand::RngCore;
+        use rand::RngCore;
         rng.fill_bytes(x);
     }
 
