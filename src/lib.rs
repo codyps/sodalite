@@ -13,10 +13,9 @@ mod test;
 
 #[cfg(feature = "rand")]
 mod rand_ {
-    use rand::Rng;
-
     fn randombytes(x: &mut [u8]) {
-        let mut rng = ::rand::OsRng::new().unwrap();
+        let mut rng = ::rand::rngs::OsRng;
+        use rand::RngCore;
         rng.fill_bytes(x);
     }
 
