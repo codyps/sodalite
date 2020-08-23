@@ -1,34 +1,30 @@
 #![no_std]
 
-#[cfg(feature = "rand")]
-extern crate rand;
-
 use core::cmp;
 use core::num::Wrapping as W;
 
-#[macro_use]
-extern crate index_fixed;
+use index_fixed::index_fixed;
 
 mod test;
 
 #[cfg(feature = "rand")]
 mod rand_ {
     fn randombytes(x: &mut [u8]) {
-        let mut rng = ::rand::rngs::OsRng;
+        let mut rng = rand::rngs::OsRng;
         use rand::RngCore;
         rng.fill_bytes(x);
     }
 
-    pub fn box_keypair(pk: &mut ::BoxPublicKey, sk: &mut ::BoxSecretKey) {
+    pub fn box_keypair(pk: &mut crate::BoxPublicKey, sk: &mut crate::BoxSecretKey) {
         let mut seed = [0u8; 32];
         randombytes(&mut seed);
-        ::box_keypair_seed(pk, sk, &seed);
+        crate::box_keypair_seed(pk, sk, &seed);
     }
 
-    pub fn sign_keypair(pk: &mut ::SignPublicKey, sk: &mut ::SignSecretKey) {
+    pub fn sign_keypair(pk: &mut crate::SignPublicKey, sk: &mut crate::SignSecretKey) {
         let mut seed = [0u8; 32];
         randombytes(&mut seed);
-        ::sign_keypair_seed(pk, sk, &seed);
+        crate::sign_keypair_seed(pk, sk, &seed);
     }
 }
 
@@ -440,11 +436,7 @@ pub fn secretbox_open(
     }
     let mut x = [0u8; 32];
     stream_xsalsa20(&mut x, n, k);
-    try!(onetimeauth_verify(
-        index_fixed!(&c[16..];..16),
-        &c[32..],
-        &x
-    ));
+    onetimeauth_verify(index_fixed!(&c[16..];..16), &c[32..], &x)?;
     stream_xsalsa20_xor(m, c, n, k);
     for i in 0..32 {
         m[i] = 0;
@@ -1309,7 +1301,7 @@ pub fn sign_attached_open(m: &mut [u8], sm: &[u8], pk: &SignPublicKey) -> Result
         return Err(());
     }
 
-    try!(unpackneg(&mut q, pk));
+    unpackneg(&mut q, pk)?;
 
     for i in 0..sm.len() {
         m[i] = sm[i];

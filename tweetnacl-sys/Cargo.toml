@@ -11,6 +11,7 @@ include = [ "Cargo.toml", "src/*.rs", "src/*.c", "src/*.h", "build.rs" ]
 workspace = ".."
 keywords = [ "nacl", "cryptography", "ffi", "no_std"]
 categories = [ "cryptography", "external-ffi-bindings" ]
+edition = "2018"
 
 [badges]
 travis-ci = { repository = "jmesmon/sodalite" }

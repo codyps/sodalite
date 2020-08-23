@@ -248,7 +248,7 @@ pub fn mod_l(r: &mut [u8; 32], x: &mut [i64; 64]) {
         sys::crypto_modL_tweet(r.as_mut_ptr(), x_sys.as_mut_ptr());
     };
 
-    for (i, v) in x_sys.into_iter().enumerate() {
+    for (i, v) in x_sys.iter().enumerate() {
         x[i] = *v;
     }
 }
