@@ -85,7 +85,7 @@ fn dl64(x: &[u8; 8]) -> W<u64> {
 fn st32(x: &mut [u8; 4], mut u: W<u32>) {
     for v in x.iter_mut() {
         *v = u.0 as u8;
-        u = u >> 8;
+        u >>= 8;
     }
 }
 
@@ -131,35 +131,31 @@ fn core(out: &mut [u8], inx: &[u8; 16], k: &[u8; 32], c: &[u8; 16], h: bool) {
         x[11 + i] = ld32(index_fixed!(&k[16+4*i..];..4));
     }
 
-    for i in 0..16 {
-        y[i] = x[i];
-    }
+    y[..16].clone_from_slice(&x[..16]);
 
     for _ in 0..20 {
         for j in 0..4 {
             for m in 0..4 {
                 t[m] = x[(5 * j + 4 * m) % 16];
             }
-            t[1] = t[1] ^ l32(t[0] + t[3], 7);
-            t[2] = t[2] ^ l32(t[1] + t[0], 9);
-            t[3] = t[3] ^ l32(t[2] + t[1], 13);
-            t[0] = t[0] ^ l32(t[3] + t[2], 18);
+            t[1] ^= l32(t[0] + t[3], 7);
+            t[2] ^= l32(t[1] + t[0], 9);
+            t[3] ^= l32(t[2] + t[1], 13);
+            t[0] ^= l32(t[3] + t[2], 18);
             for m in 0..4 {
                 w[4 * j + (j + m) % 4] = t[m];
             }
         }
-        for m in 0..16 {
-            x[m] = w[m];
-        }
+        x[..16].clone_from_slice(&w[..16]);
     }
 
     if h {
         for i in 0..16 {
-            x[i] = x[i] + y[i];
+            x[i] += y[i];
         }
         for i in 0..4 {
-            x[5 * i] = x[5 * i] - ld32(index_fixed!(&c[4*i..];..4));
-            x[6 + i] = x[6 + i] - ld32(index_fixed!(&inx[4*i..];..4));
+            x[5 * i] -= ld32(index_fixed!(&c[4*i..];..4));
+            x[6 + i] -= ld32(index_fixed!(&inx[4*i..];..4));
         }
         for i in 0..4 {
             st32(index_fixed!(&mut out[4*i..];..4), x[5 * i]);
@@ -206,18 +202,18 @@ pub fn stream_salsa20_xor(
 
     /* XXX: not zeroed in tweet-nacl, provided by call to core_salsa20 */
     let mut x = [0u8; 64];
-    m.map(|x| assert_eq!(x.len(), c.len()));
+    if let Some(x) = m {
+        assert_eq!(x.len(), c.len());
+    }
 
-    if c.len() == 0 {
+    if c.is_empty() {
         return;
     }
 
-    for i in 0..8 {
-        z[i] = n[i];
-    }
+    z[..8].clone_from_slice(&n[..8]);
 
     while c.len() >= 64 {
-        core_salsa20(&mut x, &mut z, k, SIGMA);
+        core_salsa20(&mut x, &z, k, SIGMA);
         for i in 0..64 {
             c[i] = match m {
                 Some(m) => m[i],
@@ -225,9 +221,9 @@ pub fn stream_salsa20_xor(
             } ^ x[i];
         }
         let mut u = 1u32;
-        for i in 8..16 {
-            u += z[i] as u32;
-            z[i] = u as u8;
+        for zx in z.iter_mut().skip(8) {
+            u += (*zx) as u32;
+            *zx = u as u8;
             u >>= 8;
         }
         c = &mut { c }[64..];
@@ -236,8 +232,8 @@ pub fn stream_salsa20_xor(
         }
     }
 
-    if c.len() != 0 {
-        core_salsa20(&mut x, &mut z, k, SIGMA);
+    if !c.is_empty() {
+        core_salsa20(&mut x, &z, k, SIGMA);
         for i in 0..c.len() {
             c[i] = match m {
                 Some(m) => m[i],
@@ -318,7 +314,7 @@ pub fn onetimeauth(out: &mut OnetimeauthHash, mut m: &[u8], k: &OnetimeauthKey) 
     r[12] &= 252;
     r[15] &= 15;
 
-    while m.len() > 0 {
+    while !m.is_empty() {
         let mut c = [0u32; 17];
 
         let j_end = cmp::min(m.len(), 16);
@@ -340,21 +336,19 @@ pub fn onetimeauth(out: &mut OnetimeauthHash, mut m: &[u8], k: &OnetimeauthKey) 
             }
         }
 
-        for i in 0..17 {
-            h[i] = x[i];
-        }
+        h[..17].clone_from_slice(&x[..17]);
         let mut u = 0u32;
-        for j in 0..16 {
-            u += h[j];
-            h[j] = u & 255;
+        for hx in h.iter_mut().take(16) {
+            u += *hx;
+            *hx = u & 255;
             u >>= 8;
         }
         u += h[16];
         h[16] = u & 3;
         u = 5 * (u >> 2);
-        for j in 0..16 {
-            u += h[j];
-            h[j] = u & 255;
+        for hx in h.iter_mut().take(16) {
+            u += *hx;
+            *hx = u & 255;
             u >>= 8;
         }
         u += h[16];
@@ -439,16 +433,14 @@ pub fn secretbox_open(
     stream_xsalsa20(&mut x, n, k);
     onetimeauth_verify(index_fixed!(&c[16..];..16), &c[32..], &x)?;
     stream_xsalsa20_xor(m, c, n, k);
-    for i in 0..32 {
-        m[i] = 0;
+    for mx in m.iter_mut().take(32) {
+        *mx = 0;
     }
     Ok(())
 }
 
 fn set25519(r: &mut Gf, a: Gf) {
-    for i in 0..16 {
-        r[i] = a[i];
-    }
+    r[..16].clone_from_slice(&a[..16]);
 }
 
 fn car25519(o: &mut Gf) {
@@ -475,9 +467,7 @@ fn pack25519(o: &mut [u8; 32], n: Gf) {
     let mut m: Gf = GF0;
 
     let mut t: Gf = n;
-    for i in 0..16 {
-        t[i] = n[i];
-    }
+    t[..16].clone_from_slice(&n[..16]);
     car25519(&mut t);
     car25519(&mut t);
     car25519(&mut t);
@@ -515,7 +505,7 @@ fn neq25519(a: Gf, b: Gf) -> bool {
 fn par25519(a: Gf) -> u8 {
     let mut d = [0u8; 32];
     pack25519(&mut d, a);
-    return d[0] & 1;
+    d[0] & 1
 }
 
 fn unpack25519(o: &mut Gf, n: &[u8]) {
@@ -550,9 +540,7 @@ fn gf_mult(o: &mut Gf, a: Gf, b: Gf) {
     for i in 0..15 {
         t[i] += 38 * t[i + 16];
     }
-    for i in 0..16 {
-        o[i] = t[i];
-    }
+    o[..16].clone_from_slice(&t[..16]);
     car25519(o);
     car25519(o);
 }
@@ -564,9 +552,7 @@ fn gf_square(o: &mut Gf, a: Gf) {
 
 fn inv25519(o: &mut Gf, i: Gf) {
     let mut c = GF0;
-    for a in 0..16 {
-        c[a] = i[a];
-    }
+    c[..16].clone_from_slice(&i[..16]);
     for a in (0..254).rev() {
         /* XXX: avoid aliasing with a copy */
         let mut tmp = GF0;
@@ -577,16 +563,12 @@ fn inv25519(o: &mut Gf, i: Gf) {
             c = tmp;
         }
     }
-    for a in 0..16 {
-        o[a] = c[a];
-    }
+    o[..16].clone_from_slice(&c[..16]);
 }
 
 fn pow2523(o: &mut Gf, i: Gf) {
     let mut c = GF0;
-    for a in 0..16 {
-        c[a] = i[a];
-    }
+    c[..16].clone_from_slice(&i[..16]);
     for a in (0..251).rev() {
         /* XXX: avoid aliasing with a copy */
         let mut tmp = GF0;
@@ -597,9 +579,7 @@ fn pow2523(o: &mut Gf, i: Gf) {
             c = tmp;
         }
     }
-    for a in 0..16 {
-        o[a] = c[a];
-    }
+    o[..16].clone_from_slice(&c[..16]);
 }
 
 /// Multiply group element `p` by an integer `n`. Result is stored in `q`.
@@ -623,9 +603,7 @@ pub fn scalarmult(q: &mut [u8; 32], n: &[u8; 32], p: &[u8; 32]) {
     unpack25519(index_fixed!(&mut x;..16), p);
     /* TODO: not init in tweet-nacl */
     let mut b = GF0;
-    for i in 0..16 {
-        b[i] = x[i];
-    }
+    b[..16].clone_from_slice(&x[..16]);
 
     a[0] = 1;
     d[0] = 1;
@@ -663,12 +641,12 @@ pub fn scalarmult(q: &mut [u8; 32], n: &[u8; 32], p: &[u8; 32]) {
         sel25519(&mut a, &mut b, r as isize);
         sel25519(&mut c, &mut d, r as isize);
     }
-    for i in 0..16 {
-        x[i + 16] = a[i];
-        x[i + 32] = c[i];
-        x[i + 48] = b[i];
-        x[i + 64] = d[i];
-    }
+
+    x[16..(16+16)].clone_from_slice(&a[..16]);
+    x[32..(16+32)].clone_from_slice(&c[..16]);
+    x[48..(16+48)].clone_from_slice(&b[..16]);
+    x[64..(16+64)].clone_from_slice(&d[..16]);
+
     /* XXX: avoid aliasing with an extra copy */
     let mut tmp = [0i64; 16];
     inv25519(&mut tmp, *index_fixed!(&x[32..];..16));
