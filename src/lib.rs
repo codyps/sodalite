@@ -1,4 +1,5 @@
 #![no_std]
+#![allow(clippy::many_single_char_names)]
 
 use core::cmp;
 use core::num::Wrapping as W;
