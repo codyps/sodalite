@@ -642,10 +642,10 @@ pub fn scalarmult(q: &mut [u8; 32], n: &[u8; 32], p: &[u8; 32]) {
         sel25519(&mut c, &mut d, r as isize);
     }
 
-    x[16..(16+16)].clone_from_slice(&a[..16]);
-    x[32..(16+32)].clone_from_slice(&c[..16]);
-    x[48..(16+48)].clone_from_slice(&b[..16]);
-    x[64..(16+64)].clone_from_slice(&d[..16]);
+    x[16..(16 + 16)].clone_from_slice(&a[..16]);
+    x[32..(16 + 32)].clone_from_slice(&c[..16]);
+    x[48..(16 + 48)].clone_from_slice(&b[..16]);
+    x[64..(16 + 64)].clone_from_slice(&d[..16]);
 
     /* XXX: avoid aliasing with an extra copy */
     let mut tmp = [0i64; 16];
