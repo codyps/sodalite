@@ -1304,7 +1304,7 @@ pub fn sign_attached_open(m: &mut [u8], sm: &[u8], pk: &SignPublicKey) -> Result
     unpackneg(&mut q, pk)?;
 
     m[..sm.len()].clone_from_slice(&sm[..]);
-    m[32..(32+32)].clone_from_slice(&pk[..32]);
+    m[32..(32 + 32)].clone_from_slice(&pk[..32]);
     hash(&mut h, &m[..sm.len()]);
     reduce(&mut h);
     inner_scalarmult(&mut p, &mut q, index_fixed!(&h;..32));
@@ -1322,7 +1322,7 @@ pub fn sign_attached_open(m: &mut [u8], sm: &[u8], pk: &SignPublicKey) -> Result
         return Err(());
     }
 
-    m[..n].clone_from_slice(&sm[64..(n+64)]);
+    m[..n].clone_from_slice(&sm[64..(n + 64)]);
     Ok(n)
 }
 
