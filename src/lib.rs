@@ -181,7 +181,7 @@ fn core_hsalsa20(out: &mut [u8; 32], inx: &[u8; 16], k: &[u8; 32], c: &[u8; 16])
     core(out, inx, k, c, true);
 }
 
-static SIGMA: &'static [u8; 16] = b"expand 32-byte k";
+static SIGMA: &[u8; 16] = b"expand 32-byte k";
 
 /// Encrypt `message` into `c_text` using `nonce` and `key` by xoring message with a stream.
 ///
@@ -1303,12 +1303,8 @@ pub fn sign_attached_open(m: &mut [u8], sm: &[u8], pk: &SignPublicKey) -> Result
 
     unpackneg(&mut q, pk)?;
 
-    for i in 0..sm.len() {
-        m[i] = sm[i];
-    }
-    for i in 0..32 {
-        m[i + 32] = pk[i];
-    }
+    m[..sm.len()].clone_from_slice(&sm[..]);
+    m[32..(32 + 32)].clone_from_slice(&pk[..32]);
     hash(&mut h, &m[..sm.len()]);
     reduce(&mut h);
     inner_scalarmult(&mut p, &mut q, index_fixed!(&h;..32));
@@ -1320,15 +1316,13 @@ pub fn sign_attached_open(m: &mut [u8], sm: &[u8], pk: &SignPublicKey) -> Result
     let n = sm.len() - 64;
     /* TODO: check if verify_32 should return a bool */
     if verify_32(index_fixed!(&sm;..32), &t) != 0 {
-        for i in 0..n {
-            m[i] = 0;
+        for mx in m.iter_mut().take(n) {
+            *mx = 0;
         }
         return Err(());
     }
 
-    for i in 0..n {
-        m[i] = sm[i + 64];
-    }
+    m[..n].clone_from_slice(&sm[64..(n + 64)]);
     Ok(n)
 }
 
