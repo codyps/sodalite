@@ -882,12 +882,10 @@ fn hashblocks(x: &mut [u8], mut m: &[u8]) -> usize {
         }
 
         for i in 0..80 {
-            for j in 0..8 {
-                b[j] = a[j];
-            }
+            b[..8].clone_from_slice(&a[..8]);
             let t = a[7] + upper_sigma1(a[4]) + ch(a[4], a[5], a[6]) + W(K[i]) + w[i % 16];
             b[7] = t + upper_sigma0(a[0]) + maj(a[0], a[1], a[2]);
-            b[3] = b[3] + t;
+            b[3] += t;
             for j in 0..8 {
                 a[(j + 1) % 8] = b[j];
             }
@@ -900,7 +898,7 @@ fn hashblocks(x: &mut [u8], mut m: &[u8]) -> usize {
         }
 
         for i in 0..8 {
-            a[i] = a[i] + z[i];
+            a[i] += z[i];
             z[i] = a[i];
         }
 
@@ -942,9 +940,7 @@ pub fn hash(out: &mut Hash, mut m: &[u8]) {
     m = &m[s..][..new_len];
 
     let mut x = [0u8; 256];
-    for i in 0..m.len() {
-        x[i] = m[i];
-    }
+    x[..m.len()].clone_from_slice(&m[..]);
     x[m.len()] = 128;
 
     let new_len = 256 - (if m.len() < 112 { 128 } else { 0 });
@@ -956,9 +952,7 @@ pub fn hash(out: &mut Hash, mut m: &[u8]) {
     ts64(index_fixed!(&mut x[l..];..8), (b << 3) as u64);
     hashblocks(&mut h, &x);
 
-    for i in 0..64 {
-        out[i] = h[i];
-    }
+    out[..64].clone_from_slice(&h[..64]);
 }
 
 fn add(p: &mut [Gf; 4], q: &[Gf; 4]) {
@@ -1070,9 +1064,7 @@ pub fn sign_keypair_seed(pk: &mut SignPublicKey, sk: &mut SignSecretKey, seed: &
     scalarbase(&mut p, index_fixed!(&d;..32));
     pack(pk, &p);
 
-    for i in 0..32 {
-        sk[32 + i] = pk[i];
-    }
+    sk[32..(32 + 32)].clone_from_slice(&pk[..32]);
 }
 
 const L: [u64; 32] = [
@@ -1122,8 +1114,8 @@ pub fn reduce(r: &mut [u8; 64]) {
         /* FIXME: this cast needs to be verified */
         x[i] = (r[i] as u64) as i64;
     }
-    for i in 0..64 {
-        r[i] = 0;
+    for rx in r.iter_mut().take(64) {
+        *rx = 0;
     }
     mod_l(index_fixed!(&mut r;..32), &mut x);
 }
@@ -1150,21 +1142,15 @@ pub fn sign_attached(sm: &mut [u8], m: &[u8], sk: &SignSecretKey) {
     d[31] &= 127;
     d[31] |= 64;
 
-    for i in 0..m.len() {
-        sm[64 + i] = m[i];
-    }
-    for i in 0..32 {
-        sm[32 + i] = d[32 + i];
-    }
+    sm[64..(m.len() + 64)].clone_from_slice(&m[..]);
+    sm[32..(32 + 32)].clone_from_slice(&d[32..(32 + 32)]);
 
     hash(&mut r, &sm[32..][..m.len() + 32]);
     reduce(&mut r);
     scalarbase(&mut p, index_fixed!(&r;..32));
     pack(index_fixed!(&mut sm;..32), &p);
 
-    for i in 0..32 {
-        sm[i + 32] = sk[i + 32];
-    }
+    sm[32..(32 + 32)].clone_from_slice(&sk[32..(32 + 32)]);
     hash(&mut h, &sm[..m.len() + 64]);
     reduce(&mut h);
 
