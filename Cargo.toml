@@ -29,5 +29,6 @@ index-fixed = "0.3"
 [dev-dependencies]
 tweetnacl = { path = "tweetnacl", version = "0.4" }
 rand = "0.7"
+hex = "0.4"
 
 [workspace]
