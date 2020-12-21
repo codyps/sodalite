@@ -26,12 +26,12 @@ appveyor = { repository = "jmesmon/sodalite" }
 docs = ["rand"]
 
 [dependencies]
-rand = { version = "0.7", optional = true }
+rand = { version = "0.8", optional = true }
 index-fixed = "0.3"
 
 [dev-dependencies]
 tweetnacl = { path = "tweetnacl", version = "0.4" }
-rand = "0.7"
+rand = "0.8"
 hex = "0.4"
 criterion = "0.3"
 rand_pcg = "0.2"
