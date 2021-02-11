@@ -1,7 +1,6 @@
 #![no_std]
-extern crate libc;
 
-pub use libc::{c_int, c_longlong, c_ulonglong};
+pub use cty::{c_int, c_longlong, c_ulonglong};
 
 extern "C" {
     pub fn crypto_auth_hmacsha512256_tweet(
