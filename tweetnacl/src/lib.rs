@@ -259,7 +259,7 @@ fn hashblocks_sha512_twice_eq() {
     let mut rng = rand::thread_rng();
 
     // 1 KiB, arbitrary
-    let len = rng.gen_range(core::usize::MIN, 1024);
+    let len = rng.gen_range(0..1024);
     let mut b_buf = [0u8; 1024];
 
     let b = &mut b_buf[..len];
