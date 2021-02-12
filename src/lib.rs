@@ -376,6 +376,7 @@ pub fn onetimeauth(out: &mut OnetimeauthHash, mut m: &[u8], k: &OnetimeauthKey) 
 }
 
 /// Check that `h` is a correct authenticator for message `m` under secret key `k`.
+#[allow(clippy::result_unit_err)]
 pub fn onetimeauth_verify(h: &OnetimeauthHash, m: &[u8], k: &OnetimeauthKey) -> Result<(), ()> {
     let mut x = [0u8; 16];
     onetimeauth(&mut x, m, k);
@@ -398,6 +399,7 @@ pub type SecretboxNonce = [u8; SECRETBOX_NONCE_LEN];
 ///
 ///  - If first 32 bytes of `m` are not zero.
 ///  - If length of `c` is not the same as the length of `m`.
+#[allow(clippy::result_unit_err)]
 pub fn secretbox(c: &mut [u8], m: &[u8], n: &SecretboxNonce, k: &SecretboxKey) -> Result<(), ()> {
     assert_eq!(c.len(), m.len());
     /* first 32 bytes must be zero */
@@ -419,6 +421,7 @@ pub fn secretbox(c: &mut [u8], m: &[u8], n: &SecretboxNonce, k: &SecretboxKey) -
 /// Decrypt and verify cipher text `c` using nonce `n` and secret key `k`.
 ///
 /// Message is returned in `m`.
+#[allow(clippy::result_unit_err)]
 pub fn secretbox_open(
     m: &mut [u8],
     c: &[u8],
@@ -702,6 +705,7 @@ pub fn box_beforenm(k: &mut [u8; 32], pk: &BoxPublicKey, sk: &BoxSecretKey) {
 /// `box_beforenm`).
 ///
 /// The cipher text is stored in `c`.
+#[allow(clippy::result_unit_err)]
 pub fn box_afternm(c: &mut [u8], m: &[u8], n: &[u8; 24], k: &[u8; 32]) -> Result<(), ()> {
     secretbox(c, m, n, k)
 }
@@ -710,6 +714,7 @@ pub fn box_afternm(c: &mut [u8], m: &[u8], n: &[u8; 24], k: &[u8; 32]) -> Result
 /// `box_beforenm`).
 ///
 /// The decrypted message is stored in `m`.
+#[allow(clippy::result_unit_err)]
 pub fn box_open_afternm(m: &mut [u8], c: &[u8], n: &[u8; 24], k: &[u8; 32]) -> Result<(), ()> {
     secretbox_open(m, c, n, k)
 }
@@ -723,6 +728,7 @@ pub fn box_open_afternm(m: &mut [u8], c: &[u8], n: &[u8; 24], k: &[u8; 32]) -> R
 ///
 ///  - If the first 32 bytes of `m` are not zero
 ///  - XXX: size of `c` vs `m`?
+#[allow(clippy::result_unit_err)]
 pub fn box_(
     c: &mut [u8],
     m: &[u8],
@@ -744,6 +750,7 @@ pub fn box_(
 ///
 ///  - If the first 16 bytes of `c` a not zero.
 ///  - XXX: size of `c` vs `m`?
+#[allow(clippy::result_unit_err)]
 pub fn box_open(
     m: &mut [u8],
     c: &[u8],
@@ -940,7 +947,7 @@ pub fn hash(out: &mut Hash, mut m: &[u8]) {
     m = &m[s..][..new_len];
 
     let mut x = [0u8; 256];
-    x[..m.len()].clone_from_slice(&m[..]);
+    x[..m.len()].clone_from_slice(m);
     x[m.len()] = 128;
 
     let new_len = 256 - (if m.len() < 112 { 128 } else { 0 });
@@ -1142,7 +1149,7 @@ pub fn sign_attached(sm: &mut [u8], m: &[u8], sk: &SignSecretKey) {
     d[31] &= 127;
     d[31] |= 64;
 
-    sm[64..(m.len() + 64)].clone_from_slice(&m[..]);
+    sm[64..(m.len() + 64)].clone_from_slice(m);
     sm[32..(32 + 32)].clone_from_slice(&d[32..(32 + 32)]);
 
     hash(&mut r, &sm[32..][..m.len() + 32]);
@@ -1254,6 +1261,7 @@ fn unpackneg(r: &mut [Gf; 4], p: &[u8; 32]) -> Result<(), ()> {
 ///
 /// - If `m.len() != sm.len()`
 ///
+#[allow(clippy::result_unit_err)]
 pub fn sign_attached_open(m: &mut [u8], sm: &[u8], pk: &SignPublicKey) -> Result<usize, ()> {
     assert_eq!(m.len(), sm.len());
     let mut t = [0u8; 32];
@@ -1268,7 +1276,7 @@ pub fn sign_attached_open(m: &mut [u8], sm: &[u8], pk: &SignPublicKey) -> Result
 
     unpackneg(&mut q, pk)?;
 
-    m[..sm.len()].clone_from_slice(&sm[..]);
+    m[..sm.len()].clone_from_slice(sm);
     m[32..(32 + 32)].clone_from_slice(&pk[..32]);
     hash(&mut h, &m[..sm.len()]);
     reduce(&mut h);
