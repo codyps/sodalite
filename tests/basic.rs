@@ -19,7 +19,7 @@ fn hash() {
     let mut rng = rand::thread_rng();
     prob_test(10, || {
         // 1 KiB, arbitrary
-        let len = rng.gen_range(std::usize::MIN, 1024);
+        let len = rng.gen_range(0..1024);
         //let len = 127;
 
         println!("length: {}", len);
@@ -41,7 +41,7 @@ fn onetimeauth() {
     let mut rng = rand::thread_rng();
 
     prob_test(10, || {
-        let len = rng.gen_range(std::usize::MIN, 1024);
+        let len = rng.gen_range(0..1024);
         println!("length: {}", len);
 
         let mut m = vec![0u8; len];
@@ -67,7 +67,7 @@ fn stream() {
     let mut rng = rand::thread_rng();
 
     prob_test(10, || {
-        let len = rng.gen_range(0, 1024);
+        let len = rng.gen_range(0..1024);
         println!("length: {}", len);
 
         let mut m = vec![0u8; len];
@@ -99,7 +99,7 @@ fn box_() {
 
     prob_test(10, || {
         // max length is arbitrary, 32 is minimum size of crypo_box and must be zeroed.
-        let len = rng.gen_range(32, 1024);
+        let len = rng.gen_range(32..1024);
         println!("length: {}", len);
 
         let mut m = vec![0u8; len];
@@ -139,7 +139,7 @@ fn secretbox() {
     prob_test(10, || {
         // upper bound is arbitrary, 32 is required minimum length by secretbox, but doesn't trigger
         // any encryption (need +1 for that).
-        let len = rng.gen_range(33, 1024);
+        let len = rng.gen_range(33..1024);
         println!("length: {}", len);
 
         let mut m = vec![0u8; len];
@@ -174,7 +174,7 @@ fn sign() {
 
     prob_test(10, || {
         // max length is arbitrary
-        let len = rng.gen_range(0, 1024);
+        let len = rng.gen_range(0..1024);
         println!("length: {}", len);
 
         let mut m = vec![0u8; len];

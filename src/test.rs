@@ -17,7 +17,7 @@ fn hashblock() {
     let mut rng = rand::thread_rng();
     prob_test(10, || {
         // 1 KiB, arbitrary
-        let len = rng.gen_range(core::usize::MIN, 1024);
+        let len = rng.gen_range(0..1024);
         let mut back = [0u8; 1024];
         let b = &mut back[0..len];
         rng.fill_bytes(b);
@@ -116,7 +116,7 @@ fn stream_salsa20_xor() {
         rng.fill_bytes(&mut c);
 
         // 1024 is arbitrary
-        let b = rng.gen_range(0, 1024);
+        let b = rng.gen_range(0..1024);
         let mut out1_b = [0u8; 1024];
         let mut out2_b = [0u8; 1024];
 
