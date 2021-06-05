@@ -904,6 +904,7 @@ fn hashblocks(x: &mut [u8], mut m: &[u8]) -> usize {
             }
         }
 
+        #[allow(clippy::manual_memcpy)]
         for i in 0..8 {
             a[i] += z[i];
             z[i] = a[i];

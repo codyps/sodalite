@@ -2,6 +2,7 @@ on:
   push:
     branches-ignore:
       - '**.tmp'
+  pull_request:
 
 name: ci
 

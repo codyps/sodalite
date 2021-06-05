@@ -33,3 +33,7 @@ rand_pcg = "0.3"
 all-features = true
 
 [workspace]
+members = [
+	"tweetnacl",
+	"tweetnacl-sys",
+]
