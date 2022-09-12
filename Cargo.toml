@@ -26,7 +26,7 @@ index-fixed = "0.3"
 tweetnacl = { path = "tweetnacl", version = "0.4" }
 rand = "0.8"
 hex = "0.4"
-criterion = "0.3"
+criterion = "0.4"
 rand_pcg = "0.3"
 
 [package.metadata.docs.rs]
